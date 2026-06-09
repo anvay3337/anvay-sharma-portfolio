@@ -180,8 +180,13 @@ nav.scrolled{
 .nav-links a:hover{color:var(--ink);}
 .nav-links a:hover::after{width:100%;}
 .nav-cta{
-  border:1px solid var(--line);padding:9px 18px;border-radius:100px;
-  color:var(--ink)!important;transition:all .35s var(--ease);
+  display: inline-block;
+  white-space: nowrap;
+  border:1px solid var(--line);
+  padding: 10px 24px;
+  border-radius:100px;
+  color:var(--ink)!important;
+  transition:all .35s var(--ease);
 }
 .nav-cta:hover{background:var(--acid);color:#000!important;border-color:var(--acid);}
 .nav-cta::after{display:none;}
