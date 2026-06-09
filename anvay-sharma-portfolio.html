@@ -996,6 +996,23 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
   ];
   const probe=document.createElement('canvas').getContext('2d');
 
+  // 3D rotation state variables
+  let isDragging = false;
+  let dragMoved = false;
+  let startX = 0, startY = 0;
+  let rotationX = 0, rotationY = 0;
+  let targetRotationX = 0, targetRotationY = 0;
+
+  function rotate3D(x, y, z, angleX, angleY) {
+    const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+    const x1 = x * cosY - z * sinY;
+    const z1 = x * sinY + z * cosY;
+    const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+    const y2 = y * cosX - z1 * sinX;
+    const z2 = y * sinX + z1 * cosX;
+    return [x1, y2, z2];
+  }
+
   // Stars background (unaffected space particles)
   let stars = [];
   function initStars() {
@@ -1027,12 +1044,16 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         const inBrain = probe.isPointInPath(brainPath, jx, jy);
         
         if (inBrain) {
-          // 100% acceptance inside the brain
-          raw.push({sx:jx, sy:jy});
+          const dist = Math.hypot(jx - 0.46, jy - 0.35);
+          const bDepth = Math.sqrt(Math.max(0, 0.04 - dist * dist)) * 1.2;
+          const sz = (Math.random() - 0.5) * bDepth;
+          raw.push({sx:jx, sy:jy, sz:sz});
         } else if (inHead) {
-          // 35% acceptance outside the brain but inside the head
           if (Math.random() < 0.35) {
-            raw.push({sx:jx, sy:jy});
+            const dist = Math.hypot(jx - 0.45, jy - 0.55);
+            const hDepth = Math.sqrt(Math.max(0, 0.09 - dist * dist)) * 1.2;
+            const sz = (Math.random() - 0.5) * hDepth;
+            raw.push({sx:jx, sy:jy, sz:sz});
           }
         }
       }
@@ -1046,7 +1067,7 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
     w=innerWidth;h=innerHeight;
     c.width=w*DPR;c.height=h*DPR;c.style.width=w+'px';c.style.height=h+'px';
     x.setTransform(DPR,0,0,DPR,0,0);
-    cx = w > 992 ? w * 0.66 : w * 0.5; cy = h * 0.46; D = w > 992 ? Math.min(w, h) * 0.64 : Math.min(w, h) * 0.72;
+    cx = w * 0.5; cy = h * 0.48; D = Math.min(w, h) * 1.1;
     initStars();
     build();
   }
@@ -1054,7 +1075,7 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
   function build(){
     const target=w<700?60:(w<1100?100:140);
     pts=brainPoints(target).map(p=>({
-      sx:p.sx, sy:p.sy,
+      sx:p.sx, sy:p.sy, sz:p.sz,
       x:Math.random()*w, y:Math.random()*h,           // scattered until summoned
       vx:(Math.random()-.5)*0.5, vy:(Math.random()-.5)*0.5,
       r:0.8+Math.random()*1.2,
@@ -1062,23 +1083,55 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
     }));
   }
 
-  addEventListener('mousemove',e=>{
-    mouse.x=e.clientX;mouse.y=e.clientY;mouse.active=true;
-    // hovering the brain region (centre of the hero) begins the assembly
-    if(!formed){
-      const dx=e.clientX-cx, dy=e.clientY-cy;
-      if(dx*dx+dy*dy < (D*0.55)*(D*0.55)) formed=true;
+  addEventListener('mousedown', e => {
+    if ((window.scrollY || 0) > h * 0.5) return;
+    if (e.target.closest('a, button, input, textarea, select')) return;
+    isDragging = true;
+    dragMoved = false;
+    startX = e.clientX;
+    startY = e.clientY;
+    e.preventDefault();
+  });
+
+  addEventListener('mousemove', e => {
+    if (isDragging) {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.hypot(dx, dy) > 3) dragMoved = true;
+      targetRotationY += dx * 0.008;
+      targetRotationX += dy * 0.008;
+      startX = e.clientX;
+      startY = e.clientY;
+    } else {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+      if (!formed) {
+        const dx = e.clientX - cx, dy = e.clientY - cy;
+        if (dx * dx + dy * dy < (D * 0.55) * (D * 0.55)) formed = true;
+      }
     }
   });
-  addEventListener('mouseout',()=>{mouse.active=false;mouse.x=-9999;mouse.y=-9999;});
 
-  // click = synaptic burst (only while the brain is the focus, i.e. near the top)
-  addEventListener('click',e=>{
-    if(!formed || (window.scrollY||0) > h*0.5) return;
-    for(const p of pts){
-      const dx=p.x-e.clientX, dy=p.y-e.clientY, d=Math.hypot(dx,dy);
-      if(d<220){const f=(1-d/220)*16;p.vx+=dx/(d||1)*f;p.vy+=dy/(d||1)*f;}
+  addEventListener('mouseup', e => {
+    isDragging = false;
+    if (!dragMoved && (window.scrollY || 0) < h * 0.5) {
+      for (const p of pts) {
+        const dx = p.x - e.clientX, dy = p.y - e.clientY, d = Math.hypot(dx, dy);
+        if (d < 220) {
+          const f = (1 - d / 220) * 16;
+          p.vx += dx / (d || 1) * f;
+          p.vy += dy / (d || 1) * f;
+        }
+      }
     }
+  });
+
+  addEventListener('mouseout', () => {
+    isDragging = false;
+    mouse.active = false;
+    mouse.x = -9999;
+    mouse.y = -9999;
   });
 
   function draw(now){
@@ -1120,8 +1173,6 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
       if (s.x > w) s.x = 0;
       if (s.y < 0) s.y = h;
       if (s.y > h) s.y = 0;
-      
-      // Star twinkle
       const alpha = s.alpha * (0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.phase));
       x.fillStyle = `rgba(${baseRGB}, ${alpha})`;
       x.beginPath();
@@ -1130,14 +1181,12 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
     });
     x.restore();
 
-    // angular, faceted brain — sharp edges + internal circuit wiring + nodes
+    // angular, faceted brain — sharp edges + internal circuit wiring + nodes in 3D
     brainAmt += ((ambient?0:1)-brainAmt)*0.08;
-    if(brainAmt>0.02 && typeof DOMMatrix!=='undefined'){
-      const s=D*breath, tx=cx+sway-0.5*D*breath, ty=cy-0.5*D*breath;
-      const M=new DOMMatrix([s,0,0,s,tx,ty]);
-      const SX=v=>tx+v[0]*s, SY=v=>ty+v[1]*s;
-      const hp = new Path2D(); hp.addPath(headPath, M);
-      const bp = new Path2D(); bp.addPath(brainPath, M);
+    if(brainAmt>0.02){
+      rotationX += (targetRotationX - rotationX) * 0.08;
+      rotationY += (targetRotationY - rotationY) * 0.08;
+
       x.save();
       x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
@@ -1146,9 +1195,14 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
       x.lineWidth = 1.0;
       x.beginPath();
       SULCI.forEach(line => {
-        x.moveTo(SX(line[0]), SY(line[0]));
-        for (let k = 1; k < line.length; k++) {
-          x.lineTo(SX(line[k]), SY(line[k]));
+        for (let k = 0; k < line.length; k++) {
+          const pt = line[k];
+          const [rx, ry, rz] = rotate3D(pt[0] - 0.45, pt[1] - 0.5, 0, rotationX, rotationY);
+          const persp = 1.8 / (1.8 + rz);
+          const sx = cx + rx * D * breath * persp + sway;
+          const sy = cy + ry * D * breath * persp;
+          if (k === 0) x.moveTo(sx, sy);
+          else x.lineTo(sx, sy);
         }
       });
       x.stroke();
@@ -1156,40 +1210,55 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
       // internal circuit pathways
       x.strokeStyle=`rgba(${nearRGB},${0.08*brainAmt})`; x.lineWidth=1;
       x.beginPath();
-      for(const [a,b] of EDGES){x.moveTo(SX(NODES[a]),SY(NODES[a]));x.lineTo(SX(NODES[b]),SY(NODES[b]));}
+      for(const [a,b] of EDGES){
+        const pA = NODES[a], pB = NODES[b];
+        const [rxA, ryA, rzA] = rotate3D(pA[0] - 0.45, pA[1] - 0.5, 0, rotationX, rotationY);
+        const perspA = 1.8 / (1.8 + rzA);
+        const [rxB, ryB, rzB] = rotate3D(pB[0] - 0.45, pB[1] - 0.5, 0, rotationX, rotationY);
+        const perspB = 1.8 / (1.8 + rzB);
+        x.moveTo(cx + rxA * D * breath * perspA + sway, cy + ryA * D * breath * perspA);
+        x.lineTo(cx + rxB * D * breath * perspB + sway, cy + ryB * D * breath * perspB);
+      }
       x.stroke();
 
-      // Helper to draw parallel glowing fiber bundles along a coordinate array (0..1 space)
+      // Helper to draw parallel glowing fiber bundles along a coordinate array (0..1 space) in 3D
       function drawFibers(points, numFibers, spacing, alphaFactor, isClosed) {
         const n = points.length;
         if (n < 2) return;
+        const projected = [];
+        for (let i = 0; i < n; i++) {
+          const pt = points[i];
+          const [rx, ry, rz] = rotate3D(pt[0] - 0.45, pt[1] - 0.5, 0, rotationX, rotationY);
+          const persp = 1.8 / (1.8 + rz);
+          const sx = cx + rx * D * breath * persp + sway;
+          const sy = cy + ry * D * breath * persp;
+          projected.push({x: sx, y: sy, z: rz});
+        }
         const normals = [];
         for (let i = 0; i < n; i++) {
-          let prev = points[Math.max(0, i - 1)];
-          let next = points[Math.min(n - 1, i + 1)];
+          let prev = projected[Math.max(0, i - 1)];
+          let next = projected[Math.min(n - 1, i + 1)];
           if (isClosed) {
-            prev = points[(i - 1 + n) % n];
-            next = points[(i + 1) % n];
+            prev = projected[(i - 1 + n) % n];
+            next = projected[(i + 1) % n];
           }
-          const dx = next[0] - prev[0];
-          const dy = next[1] - prev[1];
+          const dx = next.x - prev.x;
+          const dy = next.y - prev.y;
           const len = Math.hypot(dx, dy) || 1;
           normals.push([-dy / len, dx / len]);
         }
         for (let k = 0; k < numFibers; k++) {
           const offsetIdx = k - (numFibers - 1) / 2;
-          const offsetDist = offsetIdx * spacing;
+          const offsetDist = offsetIdx * spacing * D * breath;
           x.beginPath();
           for (let i = 0; i < n; i++) {
-            const pt = points[i];
+            const pt = projected[i];
             const norm = normals[i];
-            const wave = 0.003 * Math.sin(t * 0.0016 + i * 0.35 + k * 1.2);
-            const ox = pt[0] + norm[0] * (offsetDist + wave);
-            const oy = pt[1] + norm[1] * (offsetDist + wave);
-            const screenX = SX([ox, oy]);
-            const screenY = SY([ox, oy]);
-            if (i === 0) x.moveTo(screenX, screenY);
-            else x.lineTo(screenX, screenY);
+            const wave = 0.003 * Math.sin(t * 0.0016 + i * 0.35 + k * 1.2) * D * breath;
+            const ox = pt.x + norm[0] * (offsetDist + wave);
+            const oy = pt.y + norm[1] * (offsetDist + wave);
+            if (i === 0) x.moveTo(ox, oy);
+            else x.lineTo(ox, oy);
           }
           if (isClosed) x.closePath();
           const shimmer = 0.45 + 0.55 * Math.sin(t * 0.0022 + k * 1.4);
@@ -1199,15 +1268,10 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         }
       }
 
-      // 1. Draw organic head profile fiber bundles (shimmering outer contours, open at shoulders)
       drawFibers(HEAD_OUTLINE, 6, 0.007, 1.2, false);
-
-      // 2. Draw organic brain boundary fiber bundles
       drawFibers(BRAIN_OUTLINE, 4, 0.005, 0.7, true);
 
-      // 3. Draw cerebral cortex convolutions (concentric perturbed loops inside brainPath)
-      x.save();
-      x.clip(bp);
+      // 3. Draw cerebral cortex convolutions (concentric perturbed loops inside brainPath) in 3D
       const brainCenter = [0.44, 0.35];
       const maxR = 0.22, numLobes = 6;
       for (let rIdx = 0; rIdx < numLobes; rIdx++) {
@@ -1222,10 +1286,13 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
           const currR = r + foldWave;
           const ox = brainCenter[0] + currR * Math.cos(angle);
           const oy = brainCenter[1] + currR * Math.sin(angle);
-          const screenX = SX([ox, oy]);
-          const screenY = SY([ox, oy]);
-          if (a === 0) x.moveTo(screenX, screenY);
-          else x.lineTo(screenX, screenY);
+          const oz = (Math.random() - 0.5) * 0.02;
+          const [rx, ry, rz] = rotate3D(ox - 0.45, oy - 0.5, oz, rotationX, rotationY);
+          const persp = 1.8 / (1.8 + rz);
+          const sx = cx + rx * D * breath * persp + sway;
+          const sy = cy + ry * D * breath * persp;
+          if (a === 0) x.moveTo(sx, sy);
+          else x.lineTo(sx, sy);
         }
         x.closePath();
         const shimmer = 0.4 + 0.6 * Math.sin(t * 0.0014 + rIdx * 1.6);
@@ -1234,28 +1301,27 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         x.stroke();
       }
 
-      // 4. Draw cerebellum horizontal folia folds (tight horizontal wavy lines in lower back of brain)
+      // 4. Draw cerebellum horizontal folia folds (3D)
       const numFolia = 8;
       for (let fIdx = 0; fIdx < numFolia; fIdx++) {
         const yBase = 0.50 + (fIdx / (numFolia - 1)) * 0.12;
         x.beginPath();
         for (let gx = 0.40; gx <= 0.60; gx += 0.005) {
           const waveY = 0.004 * Math.sin(gx * 140 + t * 0.0022 + fIdx * 0.95);
-          const screenX = SX([gx, yBase + waveY]);
-          const screenY = SY([gx, yBase + waveY]);
-          if (gx === 0.40) x.moveTo(screenX, screenY);
-          else x.lineTo(screenX, screenY);
+          const [rx, ry, rz] = rotate3D(gx - 0.45, yBase + waveY - 0.5, 0, rotationX, rotationY);
+          const persp = 1.8 / (1.8 + rz);
+          const sx = cx + rx * D * breath * persp + sway;
+          const sy = cy + ry * D * breath * persp;
+          if (gx === 0.40) x.moveTo(sx, sy);
+          else x.lineTo(sx, sy);
         }
         const shimmer = 0.5 + 0.5 * Math.sin(t * 0.0018 + fIdx * 1.2);
         x.strokeStyle = `rgba(${nearRGB}, ${0.08 * brainAmt * shimmer})`;
         x.lineWidth = 0.8;
         x.stroke();
       }
-      x.restore();
 
-      // 5. Draw spinal / neck vertical nerve fibers (clipped to head outline to stay in neck)
-      x.save();
-      x.clip(hp);
+      // 5. Draw spinal / neck vertical nerve fibers
       const numSpineFibers = 12;
       for (let sIdx = 0; sIdx < numSpineFibers; sIdx++) {
         const xBase = 0.22 + (sIdx / (numSpineFibers - 1)) * 0.18;
@@ -1263,21 +1329,20 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         for (let gy = 0.40; gy <= 0.96; gy += 0.01) {
           const spineBend = 0.04 * Math.sin(gy * 3.5 - 1.2);
           const wiggle = 0.0035 * Math.sin(gy * 24 + t * 0.0016 + sIdx * 0.8);
-          const screenX = SX([xBase + spineBend + wiggle, gy]);
-          const screenY = SY([xBase + spineBend + wiggle, gy]);
-          if (gy === 0.40) x.moveTo(screenX, screenY);
-          else x.lineTo(screenX, screenY);
+          const [rx, ry, rz] = rotate3D(xBase + spineBend + wiggle - 0.45, gy - 0.5, 0, rotationX, rotationY);
+          const persp = 1.8 / (1.8 + rz);
+          const sx = cx + rx * D * breath * persp + sway;
+          const sy = cy + ry * D * breath * persp;
+          if (gy === 0.40) x.moveTo(sx, sy);
+          else x.lineTo(sx, sy);
         }
         const shimmer = 0.35 + 0.65 * Math.sin(t * 0.002 + sIdx * 0.65);
         x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * shimmer})`;
         x.lineWidth = 0.75;
         x.stroke();
       }
-      x.restore();
 
       // 6. Draw facial peripheral nerve branches sweeping forward into facial profile
-      x.save();
-      x.clip(hp);
       const faceFibers = [
         [[0.42, 0.45], [0.55, 0.35], [0.68, 0.28]], // Forehead
         [[0.42, 0.45], [0.58, 0.42], [0.70, 0.42]], // Eye
@@ -1296,10 +1361,12 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
             const by = (1 - u) * (1 - u) * p0[1] + 2 * (1 - u) * u * p1[1] + u * u * p2[1];
             const wiggleX = 0.004 * Math.sin(u * 12 + t * 0.0012 + k * 1.5);
             const wiggleY = 0.004 * Math.cos(u * 12 + t * 0.0012 + k * 1.5);
-            const screenX = SX([bx + offset + wiggleX, by + offset + wiggleY]);
-            const screenY = SY([bx + offset + wiggleX, by + offset + wiggleY]);
-            if (step === 0) x.moveTo(screenX, screenY);
-            else x.lineTo(screenX, screenY);
+            const [rx, ry, rz] = rotate3D(bx + offset + wiggleX - 0.45, by + offset + wiggleY - 0.5, 0, rotationX, rotationY);
+            const persp = 1.8 / (1.8 + rz);
+            const sx = cx + rx * D * breath * persp + sway;
+            const sy = cy + ry * D * breath * persp;
+            if (step === 0) x.moveTo(sx, sy);
+            else x.lineTo(sx, sy);
           }
           const shimmer = 0.3 + 0.7 * Math.sin(t * 0.0024 + fIdx * 1.1 + k * 0.85);
           x.strokeStyle = `rgba(${nearRGB}, ${0.05 * brainAmt * shimmer})`;
@@ -1307,29 +1374,38 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
           x.stroke();
         }
       });
-      x.restore();
 
-      // tech nodes (square synapses) at the circuit junctions
+      // tech nodes (square synapses) at the circuit junctions in 3D
       const pulse=0.7+0.3*Math.sin(t*0.004);
-      x.fillStyle=`rgba(${nearRGB},${0.95*brainAmt})`;
-      for(const n of NODES){const px=SX(n),py=SY(n);x.fillRect(px-2,py-2,4,4);}
+      x.fillStyle=`rgba(${nearRGB},${0.18*brainAmt})`;
+      for(const n of NODES){
+        const [rx, ry, rz] = rotate3D(n[0] - 0.45, n[1] - 0.5, 0, rotationX, rotationY);
+        const persp = 1.8 / (1.8 + rz);
+        const px = cx + rx * D * breath * persp + sway;
+        const py = cy + ry * D * breath * persp;
+        x.fillRect(px-2,py-2,4,4);
+      }
 
-      // glowing core node
-      x.fillStyle=`rgba(${nearRGB},${pulse*brainAmt})`;
-      const core=NODES[1]; x.fillRect(SX(core)-3.5,SY(core)-3.5,7,7);
+      // glowing core node in 3D
+      x.fillStyle=`rgba(${nearRGB},${pulse*0.35*brainAmt})`;
+      const core=NODES[1];
+      const [crx, cry, crz] = rotate3D(core[0] - 0.45, core[1] - 0.5, 0, rotationX, rotationY);
+      const cPersp = 1.8 / (1.8 + crz);
+      x.fillRect(cx + crx * D * breath * cPersp + sway - 3.5, cy + cry * D * breath * cPersp - 3.5, 7, 7);
 
-      // Technical labels/callouts with leader lines
+      // Technical labels/callouts with leader lines in 3D
       x.font = "bold 9px 'JetBrains Mono', monospace";
-      x.fillStyle = `rgba(${nearRGB}, ${0.18 * brainAmt})`;
-      x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt})`;
       x.lineWidth = 0.8;
       CALLOUTS.forEach(co => {
-        const px = SX(co.pt);
-        const py = SY(co.pt);
+        const [rx, ry, rz] = rotate3D(co.pt[0] - 0.45, co.pt[1] - 0.5, 0, rotationX, rotationY);
+        const persp = 1.8 / (1.8 + rz);
+        const px = cx + rx * D * breath * persp + sway;
+        const py = cy + ry * D * breath * persp;
         const tx = px + co.ox;
         const ty = py + co.oy;
         
         // Draw pointer line
+        x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt})`;
         x.beginPath();
         x.moveTo(px, py);
         x.lineTo(tx - (co.align === "left" ? 5 : -5), ty);
@@ -1373,7 +1449,10 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         if(p.y<0){p.y=0;p.vy*=-1;} else if(p.y>h){p.y=h;p.vy*=-1;}
       }else{
         // ── brain: spring to home, scatter away from cursor ──
-        const hx=cx+sway+(p.sx-0.5)*D*breath, hy=cy+(p.sy-0.5)*D*breath;
+        const [rx2, ry2, rz2] = rotate3D(p.sx - 0.45, p.sy - 0.5, p.sz, rotationX, rotationY);
+        const persp = 1.8 / (1.8 + rz2);
+        const hx = cx + rx2 * D * breath * persp + sway;
+        const hy = cy + ry2 * D * breath * persp;
         p.vx+=(hx-p.x)*0.022; p.vy+=(hy-p.y)*0.022;
         if(brainHot && md2<MR2){const dm=Math.sqrt(md2)||1, f=(1-dm/MR)*3.4; p.vx-=mdx/dm*f; p.vy-=mdy/dm*f;}
         p.vx*=0.86; p.vy*=0.86;
