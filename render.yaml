@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: anvay-portfolio-backend
+    env: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: gunicorn --chdir backend app:app
+    envVars:
+      - key: SMTP_SERVER
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: true
+      - key: SMTP_PASSWORD
+        sync: true
+      - key: RECEIVER_EMAIL
+        value: anvay3337@gmail.com
