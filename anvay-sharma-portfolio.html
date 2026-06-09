@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anvay Sharma — Building the Future, One Agent at a Time</title>
+<meta name="description" content="Anvay Sharma — AI Engineer. I build world-class AI agents & automations for businesses." />
+
+<!-- ============================================================
+     FONTS  (distinctive: Bricolage Grotesque + JetBrains Mono + Hanken Grotesk)
+     ============================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* =================================================================
+   DESIGN TOKENS
+   ================================================================= */
+:root{
+  --bg:        #09090b;
+  --bg-2:      #0f0f12;
+  --bg-card:   #121215;
+  --ink:       #ECEAE3;
+  --muted:     #8c8c84;
+  --muted-2:   #5d5d57;
+  --acid:      #CCFF00;        /* electric lime — the signature */
+  --acid-dim:  #9bc400;
+  --line:      rgba(236,234,227,0.10);
+  --line-soft: rgba(236,234,227,0.055);
+  --glow:      0 0 60px rgba(204,255,0,0.25);
+  --acc:       #CCFF00;        /* readable accent (text) — bright in dark mode */
+  --r:         16px;
+  --maxw:      1240px;
+  --ease:      cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- LIGHT THEME ---------- */
+body.light{
+  --bg:        #F3F1E9;
+  --bg-2:      #FBFAF5;
+  --bg-card:   #FFFFFF;
+  --ink:       #14140F;
+  --muted:     #6b6b61;
+  --muted-2:   #a3a399;
+  --acid:      #CCFF00;        /* keep lime bright for fills/glows */
+  --acc:       #4f7000;        /* deep lime for legible accent text */
+  --line:      rgba(20,20,15,0.12);
+  --line-soft: rgba(20,20,15,0.07);
+  --glow:      0 0 50px rgba(204,255,0,0.45);
+}
+/* foreground accent text uses --acc so it stays legible in light mode */
+.eyebrow,.hero h1 .acc,.sec-head h2 em,.about-lead .hi,.wc-tag,
+.contact-left h2 em,.svc .price,.value-strip b,
+.contact-meta a:hover,.foot-links a:hover{color:var(--acc);}
+.eyebrow::before{background:var(--acc);}
+.svc li::before{color:var(--acc);}
+body.light::after{opacity:0.015;}
+
+/* =================================================================
+   RESET / BASE
+   ================================================================= */
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Hanken Grotesk',sans-serif;
+  font-weight:400;
+  line-height:1.55;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  cursor:none;
+  transition:background .5s var(--ease),color .5s var(--ease);
+}
+@media (pointer:coarse){ body{cursor:auto;} }
+a{color:inherit;text-decoration:none;}
+img{max-width:100%;display:block;}
+::selection{background:var(--acid);color:#000;}
+
+/* subtle film grain overlay */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9998;
+  opacity:0.025;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* =================================================================
+   CANVAS  (mouse-reactive neural net)
+   ================================================================= */
+#neural{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+/* =================================================================
+   CUSTOM CURSOR
+   ================================================================= */
+.cursor-dot,.cursor-ring{
+  position:fixed;top:0;left:0;z-index:9999;pointer-events:none;
+  border-radius:50%;transform:translate(-50%,-50%);
+  mix-blend-mode:difference;
+}
+.cursor-dot{width:7px;height:7px;background:#fff;transition:width .25s,height .25s;}
+.cursor-ring{
+  width:38px;height:38px;border:1px solid rgba(255,255,255,.6);
+  transition:width .3s var(--ease),height .3s var(--ease),
+             background .3s, border-color .3s;
+}
+.cursor-ring.hover{width:64px;height:64px;background:rgba(204,255,0,.15);border-color:var(--acid);}
+.cursor-ring.text{width:8px;height:8px;background:#fff;border-color:transparent;}
+@media (pointer:coarse){.cursor-dot,.cursor-ring{display:none;}}
+
+/* =================================================================
+   PRELOADER
+   ================================================================= */
+#loader{
+  position:fixed;inset:0;z-index:10000;background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .6s,visibility .6s;
+}
+#loader.done{opacity:0;visibility:hidden;}
+.loader-name{
+  font-family:'Bricolage Grotesque';font-weight:800;
+  font-size:clamp(2rem,9vw,6rem);letter-spacing:-.04em;
+  color:var(--ink);overflow:hidden;display:flex;
+}
+.loader-name span{
+  display:inline-block;transform:translateY(110%);
+  animation:loadUp .8s var(--ease) forwards;
+}
+@keyframes loadUp{to{transform:translateY(0);}}
+.loader-bar{
+  position:absolute;bottom:0;left:0;height:3px;background:var(--acid);
+  width:0;animation:loadBar 1.6s var(--ease) forwards;box-shadow:var(--glow);
+}
+@keyframes loadBar{to{width:100%;}}
+
+/* =================================================================
+   LAYOUT HELPERS
+   ================================================================= */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px;position:relative;z-index:2;}
+section{position:relative;z-index:2;}
+.eyebrow{
+  font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--acid);display:inline-flex;
+  align-items:center;gap:10px;margin-bottom:24px;
+}
+.eyebrow::before{content:"";width:28px;height:1px;background:var(--acid);display:inline-block;}
+
+/* reveal animation */
+.reveal{opacity:0;transform:translateY(40px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+.reveal.in{opacity:1;transform:none;}
+.reveal.d1{transition-delay:.08s;} .reveal.d2{transition-delay:.16s;}
+.reveal.d3{transition-delay:.24s;} .reveal.d4{transition-delay:.32s;}
+
+/* =================================================================
+   NAV
+   ================================================================= */
+nav{
+  position:fixed;top:0;left:0;width:100%;z-index:900;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 28px;transition:padding .4s,background .4s,backdrop-filter .4s;
+  max-width:100vw;
+}
+nav.scrolled{
+  padding:14px 28px;background:rgba(9,9,11,.72);
+  backdrop-filter:blur(14px);border-bottom:1px solid var(--line-soft);
+}
+.logo{
+  font-family:'Bricolage Grotesque';font-weight:800;font-size:1.15rem;
+  letter-spacing:-.02em;display:flex;align-items:center;gap:9px;
+}
+.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--acid);box-shadow:var(--glow);
+  animation:pulse 2.4s infinite;}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.4);opacity:.6;}}
+.nav-links{display:flex;gap:34px;align-items:center;}
+.nav-links a{
+  font-family:'JetBrains Mono';font-size:.78rem;letter-spacing:.06em;
+  color:var(--muted);position:relative;padding:4px 0;transition:color .3s;
+}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-2px;width:0;height:1px;background:var(--acid);transition:width .35s var(--ease);}
+.nav-links a:hover{color:var(--ink);}
+.nav-links a:hover::after{width:100%;}
+.nav-cta{
+  border:1px solid var(--line);padding:9px 18px;border-radius:100px;
+  color:var(--ink)!important;transition:all .35s var(--ease);
+}
+.nav-cta:hover{background:var(--acid);color:#000!important;border-color:var(--acid);}
+.nav-cta::after{display:none;}
+/* theme toggle */
+.theme-toggle{
+  width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  display:grid;place-items:center;background:transparent;color:var(--ink);
+  cursor:none;transition:all .35s var(--ease);flex-shrink:0;
+}
+.theme-toggle:hover{background:var(--acid);color:#000;border-color:var(--acid);transform:rotate(20deg);}
+.theme-toggle svg{width:18px;height:18px;}
+.theme-toggle .ic-sun{display:none;}
+body.light .theme-toggle .ic-sun{display:block;}
+body.light .theme-toggle .ic-moon{display:none;}
+@media(max-width:820px){.theme-toggle{margin-right:54px;}}
+.burger{display:none;flex-direction:column;gap:5px;}
+.burger span{width:24px;height:2px;background:var(--ink);transition:.3s;}
+@media(max-width:820px){
+  .nav-links{
+    position:fixed;top:0;right:0;height:100vh;width:min(78vw,320px);
+    flex-direction:column;justify-content:center;align-items:flex-start;
+    padding:0 38px;gap:26px;background:var(--bg-2);
+    border-left:1px solid var(--line);transform:translateX(100%);
+    transition:transform .5s var(--ease);
+  }
+  .nav-links.open{transform:translateX(0);}
+  .nav-links a{font-size:1.1rem;}
+  .burger{display:flex;z-index:901;}
+  .burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .burger.open span:nth-child(2){opacity:0;}
+  .burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+}
+
+/* =================================================================
+   HERO
+   ================================================================= */
+#hero{min-height:100vh;display:flex;align-items:center;padding:120px 0 80px;}
+.hero-status{
+  font-family:'JetBrains Mono';font-size:.74rem;letter-spacing:.18em;
+  color:var(--muted);display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--line);padding:8px 16px;border-radius:100px;margin-bottom:34px;
+}
+.hero-status .live{width:8px;height:8px;border-radius:50%;background:var(--acid);
+  box-shadow:0 0 0 0 rgba(204,255,0,.6);animation:live 1.8s infinite;}
+@keyframes live{0%{box-shadow:0 0 0 0 rgba(204,255,0,.5);}70%{box-shadow:0 0 0 10px rgba(204,255,0,0);}100%{box-shadow:0 0 0 0 rgba(204,255,0,0);}}
+.hero h1{
+  font-family:'Bricolage Grotesque';font-weight:800;
+  font-size:clamp(2.8rem,9vw,8.2rem);line-height:.92;letter-spacing:-.045em;
+  margin-bottom:30px;
+}
+.hero h1 .line{display:block;overflow:hidden;}
+.hero h1 .line span{display:inline-block;transform:translateY(105%);
+  animation:heroUp 1s var(--ease) forwards;}
+.hero h1 .line:nth-child(2) span{animation-delay:.12s;}
+.hero h1 .line:nth-child(3) span{animation-delay:.24s;}
+@keyframes heroUp{to{transform:translateY(0);}}
+.hero h1 .out{
+  -webkit-text-stroke:1.5px var(--ink);color:transparent;
+}
+.hero h1 .acc{color:var(--acid);}
+.hero h1 .tag{font-size:clamp(1.5rem,4.6vw,4rem);line-height:1.04;letter-spacing:-.03em;}
+.hero h1 .line:nth-child(2){margin-top:.14em;}
+.hero-sub{
+  max-width:560px;font-size:clamp(1rem,2vw,1.22rem);color:var(--muted);
+  margin-bottom:40px;opacity:0;animation:fadeIn 1s var(--ease) .5s forwards;
+}
+.hero-sub b{color:var(--ink);font-weight:600;}
+@keyframes fadeIn{to{opacity:1;}}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;opacity:0;animation:fadeIn 1s var(--ease) .65s forwards;}
+.btn{
+  font-family:'JetBrains Mono';font-size:.82rem;letter-spacing:.04em;
+  padding:16px 30px;border-radius:100px;display:inline-flex;align-items:center;gap:10px;
+  transition:transform .25s var(--ease),background .3s,color .3s,box-shadow .3s;
+  will-change:transform;
+}
+.btn-primary{background:var(--acid);color:#000;font-weight:700;}
+.btn-primary:hover{box-shadow:var(--glow);}
+.btn-ghost{border:1px solid var(--line);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--ink);}
+.btn .arr{transition:transform .3s var(--ease);}
+.btn:hover .arr{transform:translateX(4px);}
+
+.hero-marquee{
+  margin-top:90px;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+  padding:18px 0;overflow:hidden;white-space:nowrap;opacity:0;animation:fadeIn 1s var(--ease) .8s forwards;
+}
+.hero-marquee .track{display:inline-flex;gap:54px;animation:scroll 28s linear infinite;}
+.hero-marquee:hover .track{animation-play-state:paused;}
+.hero-marquee span{font-family:'JetBrains Mono';font-size:.86rem;color:var(--muted);
+  display:inline-flex;align-items:center;gap:54px;}
+.hero-marquee span::after{content:"◆";color:var(--acid);font-size:.6rem;}
+@keyframes scroll{to{transform:translateX(-50%);}}
+
+/* =================================================================
+   SECTION TITLES
+   ================================================================= */
+.sec-pad{padding:120px 0;}
+.sec-head{margin-bottom:64px;max-width:760px;}
+.sec-head h2{
+  font-family:'Bricolage Grotesque';font-weight:700;
+  font-size:clamp(2.1rem,5.5vw,4.2rem);line-height:1;letter-spacing:-.035em;
+}
+.sec-head h2 em{color:var(--acid);font-style:normal;}
+.sec-head p{color:var(--muted);font-size:1.05rem;margin-top:20px;max-width:560px;}
+.sec-num{font-family:'JetBrains Mono';font-size:.8rem;color:var(--muted-2);}
+
+/* =================================================================
+   ABOUT
+   ================================================================= */
+#about{border-top:1px solid var(--line-soft);}
+.about-grid{display:grid;grid-template-columns:1.3fr .9fr;gap:70px;align-items:center;}
+.about-lead{font-family:'Bricolage Grotesque';font-weight:600;
+  font-size:clamp(1.5rem,3.4vw,2.45rem);line-height:1.22;letter-spacing:-.02em;}
+.about-lead .hi{color:var(--acid);}
+.about-lead .dim{color:var(--muted-2);}
+.about-body{color:var(--muted);margin-top:26px;font-size:1.02rem;max-width:520px;}
+.stats{display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;}
+.stat{padding:26px 28px;border-bottom:1px solid var(--line-soft);transition:background .35s,padding-left .35s var(--ease);}
+.stat:last-child{border-bottom:none;}
+.stat:hover{background:var(--bg-card);padding-left:38px;}
+.stat .n{font-family:'Bricolage Grotesque';font-weight:800;font-size:2.6rem;letter-spacing:-.03em;color:var(--ink);line-height:1;}
+.stat .n em{color:var(--acid);font-style:normal;}
+.stat .l{font-family:'JetBrains Mono';font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:8px;}
+@media(max-width:820px){.about-grid{grid-template-columns:1fr;gap:44px;}}
+
+/* =================================================================
+   WORK
+   ================================================================= */
+#work{border-top:1px solid var(--line-soft);}
+.filters{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:50px;}
+.filter{
+  font-family:'JetBrains Mono';font-size:.76rem;letter-spacing:.06em;
+  padding:9px 18px;border:1px solid var(--line);border-radius:100px;color:var(--muted);
+  transition:all .3s var(--ease);
+}
+.filter:hover{color:var(--ink);border-color:var(--muted);}
+.filter.active{background:var(--ink);color:#000;border-color:var(--ink);}
+.work-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;}
+.work-card{
+  position:relative;background:var(--bg-card);border:1px solid var(--line);
+  border-radius:var(--r);padding:34px;overflow:hidden;min-height:300px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  transition:transform .5s var(--ease),border-color .4s,opacity .4s;
+  transform-style:preserve-3d;will-change:transform;
+}
+.work-card.hide{display:none;}
+.work-card::before{
+  content:"";position:absolute;inset:0;border-radius:var(--r);opacity:0;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(204,255,0,.12),transparent 55%);
+  transition:opacity .4s;pointer-events:none;
+}
+.work-card:hover{border-color:rgba(204,255,0,.4);}
+.work-card:hover::before{opacity:1;}
+.wc-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.wc-tag{
+  font-family:'JetBrains Mono';font-size:.68rem;letter-spacing:.12em;
+  text-transform:uppercase;padding:6px 12px;border-radius:100px;
+  border:1px solid var(--line);color:var(--acid);
+}
+.wc-idx{font-family:'JetBrains Mono';font-size:.8rem;color:var(--muted-2);}
+.wc-body h3{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.7rem;
+  letter-spacing:-.02em;margin:30px 0 12px;line-height:1.1;}
+.wc-body p{color:var(--muted);font-size:.96rem;max-width:90%;}
+.wc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:28px;}
+.wc-stack{display:flex;gap:8px;flex-wrap:wrap;}
+.wc-stack span{font-family:'JetBrains Mono';font-size:.68rem;color:var(--muted);
+  border:1px solid var(--line-soft);padding:4px 10px;border-radius:6px;}
+.wc-go{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);
+  display:grid;place-items:center;transition:all .35s var(--ease);flex-shrink:0;}
+.work-card:hover .wc-go{background:var(--acid);border-color:var(--acid);color:#000;transform:rotate(-45deg);}
+@media(max-width:820px){.work-grid{grid-template-columns:1fr;}}
+
+/* =================================================================
+   TECH STACK
+   ================================================================= */
+#stack{border-top:1px solid var(--line-soft);background:
+  radial-gradient(900px circle at 80% 0%,rgba(204,255,0,.04),transparent 50%);}
+.stack-cats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
+.cat{
+  border:1px solid var(--line);border-radius:var(--r);padding:28px 24px;
+  background:var(--bg-2);transition:transform .4s var(--ease),border-color .4s;
+}
+.cat:hover{transform:translateY(-6px);border-color:rgba(204,255,0,.3);}
+.cat-h{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.cat-h .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:rgba(204,255,0,.1);border:1px solid rgba(204,255,0,.25);font-size:1rem;}
+.cat-h h4{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.05rem;letter-spacing:-.01em;}
+.chips{display:flex;flex-direction:column;gap:9px;}
+.chip{
+  display:flex;align-items:center;justify-content:space-between;
+  font-family:'JetBrains Mono';font-size:.82rem;color:var(--muted);
+  padding:11px 14px;border-radius:9px;background:var(--bg-card);
+  border:1px solid var(--line-soft);cursor:none;
+  transition:all .3s var(--ease);
+}
+.chip:hover{color:#000;background:var(--acid);border-color:var(--acid);transform:translateX(6px);}
+.chip .lvl{display:flex;gap:3px;}
+.chip .lvl i{width:5px;height:5px;border-radius:50%;background:var(--muted-2);transition:background .3s;}
+.chip:hover .lvl i{background:#000;}
+.chip .lvl i.on{background:var(--acid);}
+.chip:hover .lvl i.on{background:#000;}
+@media(max-width:980px){.stack-cats{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:520px){.stack-cats{grid-template-columns:1fr;}}
+
+/* =================================================================
+   SERVICES / HIRE ME  (the conversion section)
+   ================================================================= */
+#services{border-top:1px solid var(--line-soft);}
+.svc-banner{
+  border:1px solid rgba(204,255,0,.3);border-radius:var(--r);
+  background:linear-gradient(120deg,rgba(204,255,0,.08),transparent 60%);
+  padding:40px 44px;margin-bottom:44px;display:flex;align-items:center;
+  justify-content:space-between;gap:30px;flex-wrap:wrap;
+}
+.svc-banner p{font-family:'Bricolage Grotesque';font-weight:600;font-size:1.4rem;
+  letter-spacing:-.01em;max-width:640px;line-height:1.3;}
+.svc-banner p span{color:var(--acid);}
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+.svc{
+  border:1px solid var(--line);border-radius:var(--r);padding:32px;
+  background:var(--bg-card);position:relative;overflow:hidden;
+  transition:transform .45s var(--ease),border-color .4s;display:flex;flex-direction:column;
+}
+.svc:hover{transform:translateY(-8px);border-color:rgba(204,255,0,.45);}
+.svc-ic{font-size:1.6rem;margin-bottom:20px;}
+.svc h3{font-family:'Bricolage Grotesque';font-weight:700;font-size:1.35rem;letter-spacing:-.01em;margin-bottom:12px;}
+.svc p{color:var(--muted);font-size:.95rem;margin-bottom:22px;flex:1;}
+.svc ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:24px;}
+.svc li{font-family:'JetBrains Mono';font-size:.78rem;color:var(--muted);display:flex;gap:10px;align-items:flex-start;}
+.svc li::before{content:"→";color:var(--acid);}
+.svc .price{font-family:'JetBrains Mono';font-size:.8rem;color:var(--acid);
+  padding-top:18px;border-top:1px solid var(--line-soft);}
+.svc .price b{font-family:'Bricolage Grotesque';font-size:1.1rem;color:var(--ink);}
+@media(max-width:980px){.svc-grid{grid-template-columns:1fr;}}
+
+/* value strip */
+.value-strip{display:flex;gap:14px;flex-wrap:wrap;margin-top:38px;}
+.value-strip div{flex:1;min-width:200px;border:1px solid var(--line-soft);border-radius:12px;
+  padding:18px 22px;font-family:'JetBrains Mono';font-size:.8rem;color:var(--muted);
+  display:flex;gap:12px;align-items:center;transition:border-color .3s,color .3s;}
+.value-strip div:hover{border-color:var(--acid);color:var(--ink);}
+.value-strip b{color:var(--acid);font-size:1.2rem;}
+
+/* =================================================================
+   CONTACT
+   ================================================================= */
+#contact{border-top:1px solid var(--line-soft);
+  background:radial-gradient(800px circle at 20% 100%,rgba(204,255,0,.05),transparent 55%);}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;}
+.contact-left h2{font-family:'Bricolage Grotesque';font-weight:800;
+  font-size:clamp(2.4rem,6vw,5rem);line-height:.96;letter-spacing:-.04em;}
+.contact-left h2 em{color:var(--acid);font-style:normal;}
+.contact-left p{color:var(--muted);margin-top:24px;font-size:1.05rem;max-width:420px;}
+.contact-meta{margin-top:40px;display:flex;flex-direction:column;gap:4px;}
+.contact-meta a{font-family:'JetBrains Mono';font-size:.95rem;padding:14px 0;
+  border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;
+  align-items:center;color:var(--muted);transition:color .3s,padding-left .3s var(--ease);}
+.contact-meta a:hover{color:var(--acid);padding-left:10px;}
+.contact-meta a span{color:var(--muted-2);font-size:.72rem;}
+
+.form{display:flex;flex-direction:column;gap:18px;}
+.field{display:flex;flex-direction:column;gap:8px;}
+.field label{font-family:'JetBrains Mono';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.field input,.field textarea,.field select{
+  background:var(--bg-2);border:1px solid var(--line);border-radius:11px;
+  padding:15px 16px;color:var(--ink);font-family:'Hanken Grotesk';font-size:.98rem;
+  transition:border-color .3s,background .3s;cursor:none;
+}
+.field input:focus,.field textarea:focus,.field select:focus{
+  outline:none;border-color:var(--acid);background:var(--bg-card);}
+.field textarea{resize:vertical;min-height:120px;}
+.form .btn-primary{justify-content:center;border:none;cursor:none;margin-top:6px;}
+.form-note{font-family:'JetBrains Mono';font-size:.74rem;color:var(--muted-2);text-align:center;}
+@media(max-width:820px){.contact-grid{grid-template-columns:1fr;gap:48px;}}
+
+/* =================================================================
+   FOOTER
+   ================================================================= */
+footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;}
+.foot .big{font-family:'Bricolage Grotesque';font-weight:800;font-size:clamp(3rem,16vw,11rem);
+  letter-spacing:-.05em;line-height:.8;color:transparent;-webkit-text-stroke:1px var(--line);
+  width:100%;text-align:center;margin-bottom:30px;user-select:none;}
+.foot small{font-family:'JetBrains Mono';font-size:.74rem;color:var(--muted-2);}
+.foot-links{display:flex;gap:22px;}
+.foot-links a{font-family:'JetBrains Mono';font-size:.74rem;color:var(--muted);transition:color .3s;}
+.foot-links a:hover{color:var(--acid);}
+.totop{font-family:'JetBrains Mono';font-size:.74rem;color:var(--muted);
+  border:1px solid var(--line);border-radius:100px;padding:8px 16px;transition:all .3s var(--ease);}
+.totop:hover{background:var(--acid);color:#000;border-color:var(--acid);}
+</style>
+</head>
+<body>
+
+<!-- ===================== PRELOADER ===================== -->
+<div id="loader">
+  <div class="loader-name" id="loaderName"></div>
+  <div class="loader-bar"></div>
+</div>
+
+<!-- ===================== CUSTOM CURSOR ===================== -->
+<div class="cursor-dot" id="cDot"></div>
+<div class="cursor-ring" id="cRing"></div>
+
+<!-- ===================== NEURAL CANVAS ===================== -->
+<canvas id="neural"></canvas>
+
+<!-- ===================== NAV ===================== -->
+<nav id="nav">
+  <a href="#hero" class="logo"><span class="dot"></span>ANVAY.S</a>
+  <div class="nav-links" id="navLinks">
+    <a href="#about">/about</a>
+    <a href="#work">/work</a>
+    <a href="#stack">/stack</a>
+    <a href="#services">/services</a>
+    <a href="#contact" class="nav-cta">Hire me →</a>
+  </div>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme">
+    <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8l1.8-1.8M18 6l1.8-1.8"/></svg>
+  </button>
+  <div class="burger" id="burger"><span></span><span></span><span></span></div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section id="hero">
+  <div class="wrap">
+    <div class="hero-status"><span class="live"></span>AVAILABLE FOR AI ENGINEERING WORK · 2026</div>
+    <h1 class="hero">
+      <span class="line"><span>ANVAY&nbsp;SHARMA</span></span>
+      <span class="line tag"><span>Building&nbsp;the&nbsp;Future,</span></span>
+      <span class="line tag"><span class="acc">One&nbsp;Agent&nbsp;at&nbsp;a&nbsp;Time</span></span>
+    </h1>
+    <p class="hero-sub">
+      B.Tech CS (AI), Class of 2026. I design and ship <b>autonomous AI agents</b>,
+      <b>intelligent automations</b> and <b>production ML systems</b> — and build
+      <b>fully functional websites</b> for businesses, turning messy problems into
+      software that thinks for itself.
+    </p>
+    <div class="hero-actions">
+      <a href="#services" class="btn btn-primary" data-magnetic>Build an AI Agent <span class="arr">→</span></a>
+      <a href="#work" class="btn btn-ghost" data-magnetic>See my work</a>
+    </div>
+
+    <div class="hero-marquee">
+      <div class="track" id="marqueeTrack">
+        <span>AI AGENTS</span><span>LANGCHAIN</span><span>CREWAI</span><span>RAG SYSTEMS</span>
+        <span>COMPUTER VISION</span><span>AUTOMATION</span><span>PYTORCH</span><span>TENSORFLOW</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ABOUT ===================== -->
+<section id="about" class="sec-pad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">01 — Who I am</div>
+    </div>
+    <div class="about-grid">
+      <div class="reveal">
+        <p class="about-lead">
+          <span class="hi">I build AI agents</span> that don't just answer questions —
+          they take action, reason through problems and ship real outcomes.
+          <span class="dim">The kind of automation that quietly runs a business in the background.</span>
+        </p>
+        <p class="about-body">
+          I'm a 2026 B.Tech Computer Science (Artificial Intelligence) graduate obsessed with the
+          space where machine learning meets the real world. From multi-agent orchestration with
+          LangChain &amp; CrewAI, to computer-vision pipelines and full-stack web apps, I love taking
+          an idea from a blank file to a deployed, observable, production-grade system —
+          monitored end to end with Prometheus, Loki &amp; Grafana.
+        </p>
+      </div>
+      <div class="stats reveal d1">
+        <div class="stat"><div class="n"><em>AI</em> First</div><div class="l">Engineering Focus · 2 Clients</div></div>
+        <div class="stat"><div class="n">2026</div><div class="l">B.Tech CS · AI Specialisation</div></div>
+        <div class="stat"><div class="n">15<em>+</em></div><div class="l">Technologies Shipped</div></div>
+        <div class="stat"><div class="n"><em>∞</em></div><div class="l">Automations, On Request</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WORK ===================== -->
+<section id="work" class="sec-pad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">02 — Selected work</div>
+      <h2>Things I've <em>built</em> &amp; <em>shipped</em>.</h2>
+      <p>Client websites, AI agents and models, plus what's currently on my desk. Hover to explore each.</p>
+    </div>
+
+    <div class="filters reveal d1">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="web">Client Websites</button>
+      <button class="filter" data-filter="ai">AI Agents &amp; Models</button>
+      <button class="filter" data-filter="wip">In Progress</button>
+    </div>
+
+    <!-- =========================================================
+         ✏️  EDIT YOUR PROJECTS HERE
+         Change data-cat (web / ai / wip), titles, descriptions,
+         tech tags and the link in each <a> wrapper / wc-go.
+         ========================================================= -->
+    <div class="work-grid" id="workGrid">
+
+      <!-- AI AGENT -->
+      <div class="work-card reveal" data-cat="ai" data-tilt>
+        <div class="wc-top"><span class="wc-tag">AI Agent</span><span class="wc-idx">01</span></div>
+        <div class="wc-body">
+          <h3>Marketing Agent AI</h3>
+          <p>A multi-agent marketing automation system that generates campaign strategies, optimizes local SEO, and drafts copy autonomously.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>CrewAI</span><span>LangChain</span><span>Python</span></div>
+          <a href="https://marketingagentai.netlify.app/" class="wc-go" aria-label="View project" target="_blank" rel="noopener noreferrer">↗</a>
+        </div>
+      </div>
+
+      <!-- CLIENT WEBSITE -->
+      <div class="work-card reveal d1" data-cat="web" data-tilt>
+        <div class="wc-top"><span class="wc-tag">Client Website</span><span class="wc-idx">02</span></div>
+        <div class="wc-body">
+          <h3>House of Archdes</h3>
+          <p>A premium design website and dashboard for an architecture firm, built with responsive portfolios and speed-optimized showcases.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>React</span><span>Supabase</span><span>CSS</span></div>
+          <a href="https://www.houseofarchdes.com/" class="wc-go" aria-label="View project" target="_blank" rel="noopener noreferrer">↗</a>
+        </div>
+      </div>
+
+      <!-- AI MODEL -->
+      <div class="work-card reveal d2" data-cat="ai" data-tilt>
+        <div class="wc-top"><span class="wc-tag">Vision Model</span><span class="wc-idx">03</span></div>
+        <div class="wc-body">
+          <h3>Computer-Vision Pipeline</h3>
+          <p>Real-time object detection &amp; tracking pipeline using OpenCV and PyTorch, deployed with full observability dashboards.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>PyTorch</span><span>OpenCV</span><span>Grafana</span></div>
+          <a href="#" class="wc-go" aria-label="View project">↗</a>
+        </div>
+      </div>
+
+      <!-- WIP -->
+      <div class="work-card reveal d3" data-cat="wip" data-tilt>
+        <div class="wc-top"><span class="wc-tag">In Progress</span><span class="wc-idx">04</span></div>
+        <div class="wc-body">
+          <h3>Self-Hosted Agent Platform</h3>
+          <p>A platform to spin up, monitor and orchestrate custom AI agents for businesses — with Prometheus + Loki + Grafana observability baked in.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>LangChain</span><span>Prometheus</span><span>Loki</span></div>
+          <a href="#" class="wc-go" aria-label="View project">↗</a>
+        </div>
+      </div>
+
+      <!-- PORTAL -->
+      <div class="work-card reveal" data-cat="web" data-tilt>
+        <div class="wc-top"><span class="wc-tag">Portal</span><span class="wc-idx">05</span></div>
+        <div class="wc-body">
+          <h3>House of Archdes Portal</h3>
+          <p>A comprehensive internal employee portal and management dashboard for the House of Archdes design studio to coordinate projects, task tracking, and work schedules.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>React</span><span>JavaScript</span><span>CSS</span></div>
+          <a href="https://hoaportal.netlify.app/" class="wc-go" aria-label="View project" target="_blank" rel="noopener noreferrer">↗</a>
+        </div>
+      </div>
+
+      <!-- CLIENT WEBSITE -->
+      <div class="work-card reveal d1" data-cat="web" data-tilt>
+        <div class="wc-top"><span class="wc-tag">Client Website</span><span class="wc-idx">06</span></div>
+        <div class="wc-body">
+          <h3>Modern Modules</h3>
+          <p>A high-performance modular site built using modern CSS layout patterns and structured content blocks, deployed on Netlify.</p>
+        </div>
+        <div class="wc-foot">
+          <div class="wc-stack"><span>Astro</span><span>JavaScript</span><span>Tailwind</span></div>
+          <a href="https://modern-modules.netlify.app/" class="wc-go" aria-label="View project" target="_blank" rel="noopener noreferrer">↗</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TECH STACK ===================== -->
+<section id="stack" class="sec-pad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">03 — Toolkit</div>
+      <h2>The <em>stack</em> behind the magic.</h2>
+      <p>Hover any technology to feel it light up. Every piece chosen for shipping reliable AI in production.</p>
+    </div>
+
+    <div class="stack-cats">
+      <div class="cat reveal" data-tilt>
+        <div class="cat-h"><div class="ic">⟨⟩</div><h4>Languages</h4></div>
+        <div class="chips">
+          <div class="chip">Python <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="chip">React <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">SQL <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">C <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+          <div class="chip">HTML / CSS <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+        </div>
+      </div>
+
+      <div class="cat reveal d1" data-tilt>
+        <div class="cat-h"><div class="ic">◈</div><h4>Frameworks</h4></div>
+        <div class="chips">
+          <div class="chip">LangChain <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="chip">CrewAI <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="chip">PyTorch <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">TensorFlow <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">OpenCV <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+        </div>
+      </div>
+
+      <div class="cat reveal d2" data-tilt>
+        <div class="cat-h"><div class="ic">⚙</div><h4>Tools</h4></div>
+        <div class="chips">
+          <div class="chip">MySQL <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">Grafana <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">Prometheus <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">Loki <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+          <div class="chip">Tableau <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+        </div>
+      </div>
+
+      <div class="cat reveal d3" data-tilt>
+        <div class="cat-h"><div class="ic">▣</div><h4>Systems</h4></div>
+        <div class="chips">
+          <div class="chip">Linux <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">macOS <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">Windows <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="chip">Git / CI <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></div>
+          <div class="chip">Docker <span class="lvl"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SERVICES / HIRE ME ===================== -->
+<section id="services" class="sec-pad">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">04 — Work with me</div>
+      <h2>Need an <em>AI agent</em> for your business?</h2>
+      <p>I build custom, production-ready AI agents and automations — world-class engineering, without the world-class price tag.</p>
+    </div>
+
+    <div class="svc-banner reveal">
+      <p>World-class AI agents, built around <span>your</span> workflow — at <span>reasonable, transparent pricing</span> that scales with your business, not against it.</p>
+      <a href="#contact" class="btn btn-primary" data-magnetic>Get a free quote <span class="arr">→</span></a>
+    </div>
+
+    <div class="svc-grid">
+      <div class="svc reveal" data-tilt>
+        <div class="svc-ic">🤖</div>
+        <h3>Custom AI Agents</h3>
+        <p>Autonomous agents that reason, use tools and complete real tasks — built for your exact use case.</p>
+        <ul>
+          <li>Multi-agent orchestration (CrewAI / LangChain)</li>
+          <li>Tool &amp; API integrations</li>
+          <li>Human-in-the-loop controls</li>
+        </ul>
+        <div class="price">From <b>reasonable, project-based pricing</b></div>
+      </div>
+
+      <div class="svc reveal d1" data-tilt>
+        <div class="svc-ic">⚡</div>
+        <h3>Workflow Automation</h3>
+        <p>Stop doing repetitive work. I automate the boring parts so your team focuses on what matters.</p>
+        <ul>
+          <li>Document &amp; data processing</li>
+          <li>LLM-powered decision flows</li>
+          <li>Connect your existing tools</li>
+        </ul>
+        <div class="price">From <b>flexible, value-based pricing</b></div>
+      </div>
+
+      <div class="svc reveal d2" data-tilt>
+        <div class="svc-ic">🧠</div>
+        <h3>ML &amp; Vision Models</h3>
+        <p>Custom models — from computer vision to predictive analytics — trained, deployed and monitored.</p>
+        <ul>
+          <li>PyTorch / TensorFlow / OpenCV</li>
+          <li>Deployment + observability</li>
+          <li>Ongoing support available</li>
+        </ul>
+        <div class="price">From <b>tailored to scope &amp; budget</b></div>
+      </div>
+    </div>
+
+    <div class="value-strip reveal d1">
+      <div><b>✦</b> Free discovery call &amp; quote</div>
+      <div><b>✦</b> Fixed-scope, no surprise bills</div>
+      <div><b>✦</b> Production-grade, monitored &amp; documented</div>
+      <div><b>✦</b> Fast turnaround, direct communication</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTACT ===================== -->
+<section id="contact" class="sec-pad">
+  <div class="wrap">
+    <div class="contact-grid">
+      <div class="contact-left reveal">
+        <div class="eyebrow">05 — Let's talk</div>
+        <h2>Let's build <em>something</em> intelligent.</h2>
+        <p>Have a workflow that should run itself? An agent you've been imagining? Tell me about it — first call is free, and I'll tell you honestly what's possible.</p>
+        <div class="contact-meta">
+          <!-- ✏️ EDIT: your real email / links below -->
+          <a href="mailto:anvaysharma3337@gmail.com"><span>EMAIL</span>anvaysharma3337@gmail.com →</a>
+          <a href="tel:8700735883"><span>PHONE</span>+91 87007 35883 →</a>
+          <a href="https://www.linkedin.com/in/anvay-sharma-053575254"><span>LINKEDIN</span>/in/anvay-sharma-053575254 →</a>
+          <a href="https://github.com/anvay3337"><span>GITHUB</span>@anvay3337 →</a>
+          <a href="#"><span>LOCATION</span>India · Remote worldwide →</a>
+        </div>
+      </div>
+
+      <div class="reveal d1">
+        <div class="form" id="contactForm">
+          <div class="field">
+            <label for="name">Your name</label>
+            <input type="text" id="name" placeholder="Jane Doe" />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="jane@company.com" />
+          </div>
+          <div class="field">
+            <label for="type">What do you need?</label>
+            <select id="type">
+              <option>A custom AI agent</option>
+              <option>Workflow automation</option>
+              <option>An ML / vision model</option>
+              <option>A website or web app</option>
+              <option>Not sure yet — let's chat</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="msg">Tell me about your project</label>
+            <textarea id="msg" placeholder="I'd love an agent that..."></textarea>
+          </div>
+          <button class="btn btn-primary" id="sendBtn" data-magnetic>Send enquiry <span class="arr">→</span></button>
+          <p class="form-note" id="formNote">Submits securely · I reply within 24 hours</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap">
+    <div class="foot big">ANVAY SHARMA</div>
+    <div class="foot">
+      <small>© 2026 Anvay Sharma · AI Engineer · Built with intent.</small>
+      <div class="foot-links">
+        <a href="#hero">Top</a>
+        <a href="#work">Work</a>
+        <a href="#services">Services</a>
+        <a href="mailto:anvaysharma3337@gmail.com">Email</a>
+      </div>
+      <a href="#hero" class="totop" data-magnetic>Back to top ↑</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* =================================================================
+   PRELOADER — animated name
+   ================================================================= */
+(function(){
+  const name="ANVAY";
+  const el=document.getElementById('loaderName');
+  [...name].forEach((ch,i)=>{
+    const s=document.createElement('span');
+    s.textContent=ch;
+    s.style.animationDelay=(i*0.06)+'s';
+    el.appendChild(s);
+  });
+  window.addEventListener('load',()=>{
+    setTimeout(()=>document.getElementById('loader').classList.add('done'),1700);
+  });
+  // fallback
+  setTimeout(()=>document.getElementById('loader').classList.add('done'),2600);
+})();
+
+/* =================================================================
+   CUSTOM CURSOR + magnetic + hover states
+   ================================================================= */
+(function(){
+  if(window.matchMedia('(pointer:coarse)').matches) return;
+  const dot=document.getElementById('cDot'),ring=document.getElementById('cRing');
+  let mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;
+    dot.style.left=mx+'px';dot.style.top=my+'px';});
+  (function loop(){rx+=(mx-rx)*0.18;ry+=(my-ry)*0.18;
+    ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(loop);})();
+
+  // hover targets
+  const hovers='a,button,.work-card,.svc,.cat,.chip,.stat,[data-magnetic],input,textarea,select';
+  document.querySelectorAll(hovers).forEach(el=>{
+    el.addEventListener('mouseenter',()=>{
+      if(el.matches('input,textarea,select')) ring.classList.add('text');
+      else ring.classList.add('hover');
+    });
+    el.addEventListener('mouseleave',()=>ring.classList.remove('hover','text'));
+  });
+
+  // magnetic buttons
+  document.querySelectorAll('[data-magnetic]').forEach(btn=>{
+    btn.addEventListener('mousemove',e=>{
+      const r=btn.getBoundingClientRect();
+      const x=e.clientX-r.left-r.width/2;
+      const y=e.clientY-r.top-r.height/2;
+      btn.style.transform=`translate(${x*0.3}px,${y*0.4}px)`;
+    });
+    btn.addEventListener('mouseleave',()=>btn.style.transform='translate(0,0)');
+  });
+})();
+
+/* =================================================================
+   NEURAL NETWORK CANVAS — reacts to mouse
+   ================================================================= */
+(function(){
+  const c=document.getElementById('neural'),x=c.getContext('2d');
+  let w,h,DPR=Math.min(devicePixelRatio||1,2);
+  let pts=[],cx,cy,D,t0=performance.now();
+  let curVis=1,targetVis=1,brainAmt=0;
+  const coarse=window.matchMedia('(pointer:coarse)').matches;
+  let formed=coarse;                          // touch devices form on load (no hover)
+  const mouse={x:-9999,y:-9999,active:false};
+
+  // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
+  const HEAD_OUTLINE = [
+    [0.10, 0.95], // Shoulder/back start
+    [0.14, 0.85], [0.18, 0.72], [0.22, 0.62], // Neck back
+    [0.16, 0.54], [0.12, 0.44], [0.14, 0.32], [0.20, 0.20], // Back of head
+    [0.28, 0.12], [0.40, 0.08], [0.52, 0.08], [0.64, 0.12], // Top skull arch
+    [0.72, 0.18], [0.76, 0.26], [0.76, 0.33], // Forehead
+    [0.73, 0.36], // Nose bridge indent
+    [0.82, 0.38], [0.82, 0.42], [0.74, 0.44], // Nose tip & bottom
+    [0.78, 0.47], [0.74, 0.49], // Upper lip
+    [0.72, 0.50], // Mouth center
+    [0.76, 0.52], [0.72, 0.54], // Lower lip
+    [0.75, 0.58], [0.72, 0.63], [0.66, 0.66], // Chin
+    [0.56, 0.68], [0.46, 0.72], // Jawline
+    [0.44, 0.80], [0.48, 0.95]  // Neck front / chest start
+  ];
+  function poly(arr){const p=new Path2D();arr.forEach((q,i)=>i?p.lineTo(q[0],q[1]):p.moveTo(q[0],q[1]));p.closePath();return p;}
+  const headPath = poly(HEAD_OUTLINE);
+
+  // Brain outline situated anatomically inside the skull
+  const BRAIN_OUTLINE = [
+    [0.26, 0.40], // Occipital base
+    [0.28, 0.30], [0.34, 0.22], [0.42, 0.18], [0.52, 0.18], // Top cerebrum
+    [0.60, 0.22], [0.65, 0.28], [0.66, 0.36], // Frontal cerebrum
+    [0.64, 0.44], [0.58, 0.48], // Temporal lobe boundary
+    [0.55, 0.52], [0.56, 0.58], [0.52, 0.62], [0.46, 0.62], // Cerebellum
+    [0.44, 0.56], [0.42, 0.50], [0.34, 0.46]  // Brainstem top
+  ];
+  const brainPath = poly(BRAIN_OUTLINE);
+
+  // Anatomical internal structural lines (sulci, fissures, skull thickness, spine)
+  const SULCI = [
+    // Spine columns
+    [[0.32, 0.65], [0.32, 0.95]],
+    [[0.34, 0.65], [0.34, 0.95]],
+    // Face contours / skull inner line
+    [[0.72, 0.28], [0.65, 0.38], [0.62, 0.48], [0.55, 0.58]],
+    // Central sulcus
+    [[0.44, 0.20], [0.42, 0.30], [0.44, 0.38]],
+    // Lateral sulcus
+    [[0.32, 0.38], [0.42, 0.39], [0.52, 0.36]],
+    // Frontal grooves
+    [[0.36, 0.24], [0.34, 0.32]],
+    [[0.48, 0.24], [0.46, 0.32]],
+    // Occipital grooves
+    [[0.58, 0.26], [0.56, 0.34]],
+    // Cerebellar stripes (Arbor Vitae)
+    [[0.50, 0.54], [0.46, 0.57]],
+    [[0.48, 0.52], [0.44, 0.55]]
+  ];
+
+  // Technical callouts with pointer lines mapping lateral head & spine anatomy
+  const CALLOUTS = [
+    { pt: [0.64, 0.12], text: "SYS.SENSORY // PARIETAL", align: "left", ox: 35, oy: -15 },
+    { pt: [0.72, 0.20], text: "SYS.LOGIC // FRONTAL", align: "left", ox: 30, oy: -15 },
+    { pt: [0.82, 0.38], text: "SYS.PERCEPTION", align: "left", ox: 25, oy: 0 },
+    { pt: [0.14, 0.32], text: "SYS.VISION // OCCIPITAL", align: "right", ox: -30, oy: 0 },
+    { pt: [0.18, 0.72], text: "SYS.TRANSMISSION // SPINE", align: "right", ox: -30, oy: 0 },
+    { pt: [0.50, 0.74], text: "SYS.MOTOR // CEREBELLUM", align: "left", ox: 35, oy: 15 }
+  ];
+
+  // Internal circuit nodes redistributed to sit inside head/neck structure
+  const NODES = [
+    [0.48, 0.26], [0.44, 0.38], [0.28, 0.36], [0.44, 0.48], [0.34, 0.56],
+    [0.33, 0.68], [0.33, 0.82], [0.64, 0.44], [0.60, 0.28], [0.36, 0.22]
+  ];
+  const EDGES = [
+    [0, 1], [1, 2], [1, 3], [1, 4], [1, 9], // Cerebrum connections
+    [4, 5], [5, 6], // Spinal cord down
+    [1, 7], [0, 8], [7, 8], // Facial connection
+    [2, 9], [9, 0] // Upper skull loop
+  ];
+  const probe=document.createElement('canvas').getContext('2d');
+
+  // Stars background (unaffected space particles)
+  let stars = [];
+  function initStars() {
+    stars = [];
+    const count = w < 700 ? 40 : 90;
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 0.6 + Math.random() * 1.4, // larger radius for visibility (1.2px - 4.0px diameter)
+        alpha: 0.35 + Math.random() * 0.40, // higher alpha (0.35 - 0.75) for clearly visible stars
+        vx: -0.04 - Math.random() * 0.10, // uniform slow drift to the left (simulating space travel panning)
+        vy: (Math.random() - 0.5) * 0.02, // extremely minor vertical float
+        phase: Math.random() * Math.PI * 2,
+        twinkleSpeed: 0.003 + Math.random() * 0.008
+      });
+    }
+  }
+
+  function brainPoints(target){
+    const raw=[];
+    const step=0.012;
+    // We want to generate dots inside the head, but make it denser inside the brain.
+    for(let gx=0.05; gx<=0.95; gx+=step){
+      for(let gy=0.05; gy<=0.98; gy+=step){
+        const jx=gx+(Math.random()-.5)*step;
+        const jy=gy+(Math.random()-.5)*step;
+        const inHead = probe.isPointInPath(headPath, jx, jy);
+        const inBrain = probe.isPointInPath(brainPath, jx, jy);
+        
+        if (inBrain) {
+          // 100% acceptance inside the brain
+          raw.push({sx:jx, sy:jy});
+        } else if (inHead) {
+          // 35% acceptance outside the brain but inside the head
+          if (Math.random() < 0.35) {
+            raw.push({sx:jx, sy:jy});
+          }
+        }
+      }
+    }
+    // Shuffle and slice
+    for(let i=raw.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[raw[i],raw[j]]=[raw[j],raw[i]];}
+    return raw.slice(0,target);
+  }
+
+  function size(){
+    w=innerWidth;h=innerHeight;
+    c.width=w*DPR;c.height=h*DPR;c.style.width=w+'px';c.style.height=h+'px';
+    x.setTransform(DPR,0,0,DPR,0,0);
+    cx=w*0.5; cy=h*0.46; D=Math.min(w,h)*0.72;
+    initStars();
+    build();
+  }
+
+  function build(){
+    const target=w<700?60:(w<1100?100:140);
+    pts=brainPoints(target).map(p=>({
+      sx:p.sx, sy:p.sy,
+      x:Math.random()*w, y:Math.random()*h,           // scattered until summoned
+      vx:(Math.random()-.5)*0.5, vy:(Math.random()-.5)*0.5,
+      r:0.8+Math.random()*1.2,
+      ph:Math.random()*Math.PI*2
+    }));
+  }
+
+  addEventListener('mousemove',e=>{
+    mouse.x=e.clientX;mouse.y=e.clientY;mouse.active=true;
+    // hovering the brain region (centre of the hero) begins the assembly
+    if(!formed){
+      const dx=e.clientX-cx, dy=e.clientY-cy;
+      if(dx*dx+dy*dy < (D*0.55)*(D*0.55)) formed=true;
+    }
+  });
+  addEventListener('mouseout',()=>{mouse.active=false;mouse.x=-9999;mouse.y=-9999;});
+
+  // click = synaptic burst (only while the brain is the focus, i.e. near the top)
+  addEventListener('click',e=>{
+    if(!formed || (window.scrollY||0) > h*0.5) return;
+    for(const p of pts){
+      const dx=p.x-e.clientX, dy=p.y-e.clientY, d=Math.hypot(dx,dy);
+      if(d<220){const f=(1-d/220)*16;p.vx+=dx/(d||1)*f;p.vy+=dy/(d||1)*f;}
+    }
+  });
+
+  function draw(now){
+    const t=now-t0;
+    x.clearRect(0,0,w,h);
+
+    const sy=window.scrollY||0;
+    const inHero = sy < h*0.45;
+    // brain is "held" only while in the hero AND summoned; otherwise it releases
+    // into the free, mouse-reactive network of connecting dots.
+    const ambient = !inHero || !formed;
+
+    // bright in hero, dimmed-but-alive once scrolled into the content
+    const fade=Math.min(1, sy/(h*0.5));
+    targetVis = 1 - fade*0.65;                   // 1.0 → 0.35
+    curVis += (targetVis-curVis)*0.08;
+    x.globalAlpha=curVis;
+
+    const light=document.body.classList.contains('light');
+    const baseRGB=light?'20,20,15':'236,234,227';
+    const nearRGB=light?'90,130,0':'204,255,0';
+    const baseNodeA=light?0.30:0.42, baseLineA=light?0.14:0.11;
+
+    const breath=1+Math.sin(t*0.0006)*0.018;
+    const sway=Math.sin(t*0.0004)*6;
+    const MR=150, MR2=MR*MR;                      // mouse hot-radius (highlight)
+    const AR=180, AR2=AR*AR;                      // attraction radius (ambient)
+    const LD = ambient?65:28, LD2=LD*LD;         // long web vs tight brain wiring
+    const brainHot = !ambient && curVis>0.5;      // scatter only when brain is focus
+
+    // ── Starfield background (moving like space, cannot be interfered with, faded & light) ──
+    x.save();
+    stars.forEach(s => {
+      s.x += s.vx;
+      s.y += s.vy;
+      
+      // Screen wrap
+      if (s.x < 0) s.x = w;
+      if (s.x > w) s.x = 0;
+      if (s.y < 0) s.y = h;
+      if (s.y > h) s.y = 0;
+      
+      // Star twinkle
+      const alpha = s.alpha * (0.5 + 0.5 * Math.sin(t * s.twinkleSpeed + s.phase));
+      x.fillStyle = `rgba(${baseRGB}, ${alpha})`;
+      x.beginPath();
+      x.arc(s.x, s.y, s.r, 0, 2 * Math.PI);
+      x.fill();
+    });
+    x.restore();
+
+    // angular, faceted brain — sharp edges + internal circuit wiring + nodes
+    brainAmt += ((ambient?0:1)-brainAmt)*0.08;
+    if(brainAmt>0.02 && typeof DOMMatrix!=='undefined'){
+      const s=D*breath, tx=cx+sway-0.5*D*breath, ty=cy-0.5*D*breath;
+      const M=new DOMMatrix([s,0,0,s,tx,ty]);
+      const SX=v=>tx+v[0]*s, SY=v=>ty+v[1]*s;
+      const hp = new Path2D(); hp.addPath(headPath, M);
+      const bp = new Path2D(); bp.addPath(brainPath, M);
+      x.save();
+      x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
+
+      // Draw structural sulci & spine grooves (delicate)
+      x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt})`;
+      x.lineWidth = 1.0;
+      x.beginPath();
+      SULCI.forEach(line => {
+        x.moveTo(SX(line[0]), SY(line[0]));
+        for (let k = 1; k < line.length; k++) {
+          x.lineTo(SX(line[k]), SY(line[k]));
+        }
+      });
+      x.stroke();
+
+      // internal circuit pathways
+      x.strokeStyle=`rgba(${nearRGB},${0.18*brainAmt})`; x.lineWidth=1;
+      x.beginPath();
+      for(const [a,b] of EDGES){x.moveTo(SX(NODES[a]),SY(NODES[a]));x.lineTo(SX(NODES[b]),SY(NODES[b]));}
+      x.stroke();
+
+      // Helper to draw parallel glowing fiber bundles along a coordinate array (0..1 space)
+      function drawFibers(points, numFibers, spacing, alphaFactor, isClosed) {
+        const n = points.length;
+        if (n < 2) return;
+        const normals = [];
+        for (let i = 0; i < n; i++) {
+          let prev = points[Math.max(0, i - 1)];
+          let next = points[Math.min(n - 1, i + 1)];
+          if (isClosed) {
+            prev = points[(i - 1 + n) % n];
+            next = points[(i + 1) % n];
+          }
+          const dx = next[0] - prev[0];
+          const dy = next[1] - prev[1];
+          const len = Math.hypot(dx, dy) || 1;
+          normals.push([-dy / len, dx / len]);
+        }
+        for (let k = 0; k < numFibers; k++) {
+          const offsetIdx = k - (numFibers - 1) / 2;
+          const offsetDist = offsetIdx * spacing;
+          x.beginPath();
+          for (let i = 0; i < n; i++) {
+            const pt = points[i];
+            const norm = normals[i];
+            const wave = 0.003 * Math.sin(t * 0.0016 + i * 0.35 + k * 1.2);
+            const ox = pt[0] + norm[0] * (offsetDist + wave);
+            const oy = pt[1] + norm[1] * (offsetDist + wave);
+            const screenX = SX([ox, oy]);
+            const screenY = SY([ox, oy]);
+            if (i === 0) x.moveTo(screenX, screenY);
+            else x.lineTo(screenX, screenY);
+          }
+          if (isClosed) x.closePath();
+          const shimmer = 0.45 + 0.55 * Math.sin(t * 0.0022 + k * 1.4);
+          x.strokeStyle = `rgba(${nearRGB}, ${0.14 * brainAmt * alphaFactor * shimmer})`;
+          x.lineWidth = 0.75;
+          x.stroke();
+        }
+      }
+
+      // 1. Draw organic head profile fiber bundles (shimmering outer contours, open at shoulders)
+      drawFibers(HEAD_OUTLINE, 6, 0.007, 1.2, false);
+
+      // 2. Draw organic brain boundary fiber bundles
+      drawFibers(BRAIN_OUTLINE, 4, 0.005, 0.7, true);
+
+      // 3. Draw cerebral cortex convolutions (concentric perturbed loops inside brainPath)
+      x.save();
+      x.clip(bp);
+      const brainCenter = [0.44, 0.35];
+      const maxR = 0.22, numLobes = 6;
+      for (let rIdx = 0; rIdx < numLobes; rIdx++) {
+        const r = 0.04 + (rIdx / (numLobes - 1)) * (maxR - 0.04);
+        x.beginPath();
+        const numAngleSteps = 120;
+        for (let a = 0; a <= numAngleSteps; a++) {
+          const angle = (a / numAngleSteps) * Math.PI * 2;
+          const freq = 12 + rIdx * 2;
+          const amp = 0.012 + rIdx * 0.003;
+          const foldWave = amp * Math.sin(freq * angle + t * 0.0012 + rIdx * 0.75);
+          const currR = r + foldWave;
+          const ox = brainCenter[0] + currR * Math.cos(angle);
+          const oy = brainCenter[1] + currR * Math.sin(angle);
+          const screenX = SX([ox, oy]);
+          const screenY = SY([ox, oy]);
+          if (a === 0) x.moveTo(screenX, screenY);
+          else x.lineTo(screenX, screenY);
+        }
+        x.closePath();
+        const shimmer = 0.4 + 0.6 * Math.sin(t * 0.0014 + rIdx * 1.6);
+        x.strokeStyle = `rgba(${nearRGB}, ${0.16 * brainAmt * shimmer})`;
+        x.lineWidth = 0.8;
+        x.stroke();
+      }
+
+      // 4. Draw cerebellum horizontal folia folds (tight horizontal wavy lines in lower back of brain)
+      const numFolia = 8;
+      for (let fIdx = 0; fIdx < numFolia; fIdx++) {
+        const yBase = 0.50 + (fIdx / (numFolia - 1)) * 0.12;
+        x.beginPath();
+        for (let gx = 0.40; gx <= 0.60; gx += 0.005) {
+          const waveY = 0.004 * Math.sin(gx * 140 + t * 0.0022 + fIdx * 0.95);
+          const screenX = SX([gx, yBase + waveY]);
+          const screenY = SY([gx, yBase + waveY]);
+          if (gx === 0.40) x.moveTo(screenX, screenY);
+          else x.lineTo(screenX, screenY);
+        }
+        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.0018 + fIdx * 1.2);
+        x.strokeStyle = `rgba(${nearRGB}, ${0.20 * brainAmt * shimmer})`;
+        x.lineWidth = 0.8;
+        x.stroke();
+      }
+      x.restore();
+
+      // 5. Draw spinal / neck vertical nerve fibers (clipped to head outline to stay in neck)
+      x.save();
+      x.clip(hp);
+      const numSpineFibers = 12;
+      for (let sIdx = 0; sIdx < numSpineFibers; sIdx++) {
+        const xBase = 0.22 + (sIdx / (numSpineFibers - 1)) * 0.18;
+        x.beginPath();
+        for (let gy = 0.40; gy <= 0.96; gy += 0.01) {
+          const spineBend = 0.04 * Math.sin(gy * 3.5 - 1.2);
+          const wiggle = 0.0035 * Math.sin(gy * 24 + t * 0.0016 + sIdx * 0.8);
+          const screenX = SX([xBase + spineBend + wiggle, gy]);
+          const screenY = SY([xBase + spineBend + wiggle, gy]);
+          if (gy === 0.40) x.moveTo(screenX, screenY);
+          else x.lineTo(screenX, screenY);
+        }
+        const shimmer = 0.35 + 0.65 * Math.sin(t * 0.002 + sIdx * 0.65);
+        x.strokeStyle = `rgba(${nearRGB}, ${0.14 * brainAmt * shimmer})`;
+        x.lineWidth = 0.75;
+        x.stroke();
+      }
+      x.restore();
+
+      // 6. Draw facial peripheral nerve branches sweeping forward into facial profile
+      x.save();
+      x.clip(hp);
+      const faceFibers = [
+        [[0.42, 0.45], [0.55, 0.35], [0.68, 0.28]], // Forehead
+        [[0.42, 0.45], [0.58, 0.42], [0.70, 0.42]], // Eye
+        [[0.42, 0.45], [0.56, 0.50], [0.72, 0.46]], // Nose
+        [[0.42, 0.45], [0.50, 0.58], [0.65, 0.62]], // Jaw
+        [[0.42, 0.45], [0.44, 0.60], [0.46, 0.80]]  // Throat
+      ];
+      faceFibers.forEach((ptsList, fIdx) => {
+        for (let k = 0; k < 3; k++) {
+          const offset = (k - 1) * 0.007;
+          x.beginPath();
+          const p0 = ptsList[0], p1 = ptsList[1], p2 = ptsList[2];
+          for (let step = 0; step <= 20; step++) {
+            const u = step / 20;
+            const bx = (1 - u) * (1 - u) * p0[0] + 2 * (1 - u) * u * p1[0] + u * u * p2[0];
+            const by = (1 - u) * (1 - u) * p0[1] + 2 * (1 - u) * u * p1[1] + u * u * p2[1];
+            const wiggleX = 0.004 * Math.sin(u * 12 + t * 0.0012 + k * 1.5);
+            const wiggleY = 0.004 * Math.cos(u * 12 + t * 0.0012 + k * 1.5);
+            const screenX = SX([bx + offset + wiggleX, by + offset + wiggleY]);
+            const screenY = SY([bx + offset + wiggleX, by + offset + wiggleY]);
+            if (step === 0) x.moveTo(screenX, screenY);
+            else x.lineTo(screenX, screenY);
+          }
+          const shimmer = 0.3 + 0.7 * Math.sin(t * 0.0024 + fIdx * 1.1 + k * 0.85);
+          x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt * shimmer})`;
+          x.lineWidth = 0.7;
+          x.stroke();
+        }
+      });
+      x.restore();
+
+      // tech nodes (square synapses) at the circuit junctions
+      const pulse=0.7+0.3*Math.sin(t*0.004);
+      x.fillStyle=`rgba(${nearRGB},${0.95*brainAmt})`;
+      for(const n of NODES){const px=SX(n),py=SY(n);x.fillRect(px-2,py-2,4,4);}
+
+      // glowing core node
+      x.fillStyle=`rgba(${nearRGB},${pulse*brainAmt})`;
+      const core=NODES[1]; x.fillRect(SX(core)-3.5,SY(core)-3.5,7,7);
+
+      // Technical labels/callouts with leader lines
+      x.font = "bold 9px 'JetBrains Mono', monospace";
+      x.fillStyle = `rgba(${nearRGB}, ${0.5 * brainAmt})`;
+      x.strokeStyle = `rgba(${nearRGB}, ${0.25 * brainAmt})`;
+      x.lineWidth = 0.8;
+      CALLOUTS.forEach(co => {
+        const px = SX(co.pt);
+        const py = SY(co.pt);
+        const tx = px + co.ox;
+        const ty = py + co.oy;
+        
+        // Draw pointer line
+        x.beginPath();
+        x.moveTo(px, py);
+        x.lineTo(tx - (co.align === "left" ? 5 : -5), ty);
+        x.lineTo(tx, ty);
+        x.stroke();
+        
+        // Draw tiny circle at start
+        x.beginPath();
+        x.arc(px, py, 1.5, 0, 2 * Math.PI);
+        x.fillStyle = `rgba(${nearRGB}, ${0.8 * brainAmt})`;
+        x.fill();
+        
+        // Draw text label
+        x.fillStyle = `rgba(${baseRGB}, ${0.65 * brainAmt})`;
+        x.textAlign = co.align;
+        x.textBaseline = "middle";
+        x.fillText(co.text, tx + (co.align === "left" ? 4 : -4), ty);
+      });
+
+      x.restore();
+    }
+
+    const normalPath1 = new Path2D();
+    const normalPath2 = new Path2D();
+    const normalPath3 = new Path2D();
+    const nearPath = new Path2D();
+    let hasNormal1 = false, hasNormal2 = false, hasNormal3 = false, hasNear = false;
+
+    for(let i=0;i<pts.length;i++){
+      const p=pts[i];
+      const mdx=mouse.x-p.x, mdy=mouse.y-p.y, md2=mdx*mdx+mdy*mdy;
+
+      if(ambient){
+        // ── previous interactive network: drift + cursor attraction ──
+        p.vx+=(Math.random()-.5)*0.02; p.vy+=(Math.random()-.5)*0.02;
+        if(mouse.active && md2<AR2){const dm=Math.sqrt(md2)||1; p.vx+=mdx/dm*0.06; p.vy+=mdy/dm*0.06;}
+        p.vx*=0.985; p.vy*=0.985;
+        const sp=Math.hypot(p.vx,p.vy); if(sp>2.2){p.vx*=2.2/sp;p.vy*=2.2/sp;}
+        p.x+=p.vx; p.y+=p.vy;
+        if(p.x<0){p.x=0;p.vx*=-1;} else if(p.x>w){p.x=w;p.vx*=-1;}
+        if(p.y<0){p.y=0;p.vy*=-1;} else if(p.y>h){p.y=h;p.vy*=-1;}
+      }else{
+        // ── brain: spring to home, scatter away from cursor ──
+        const hx=cx+sway+(p.sx-0.5)*D*breath, hy=cy+(p.sy-0.5)*D*breath;
+        p.vx+=(hx-p.x)*0.022; p.vy+=(hy-p.y)*0.022;
+        if(brainHot && md2<MR2){const dm=Math.sqrt(md2)||1, f=(1-dm/MR)*3.4; p.vx-=mdx/dm*f; p.vy-=mdy/dm*f;}
+        p.vx*=0.86; p.vy*=0.86;
+        p.x+=p.vx; p.y+=p.vy;
+      }
+
+      const hot = mouse.active && md2<MR2 && (ambient || brainHot);
+      const sh=0.6+0.4*Math.sin(t*0.002+p.ph);
+      x.beginPath();x.arc(p.x,p.y,hot?p.r+1.6:p.r,0,6.2832);
+      x.fillStyle=hot?`rgba(${nearRGB},0.95)`:`rgba(${baseRGB},${baseNodeA*sh})`;
+      x.fill();
+
+      for(let j=i+1;j<pts.length;j++){
+        const q=pts[j],dx=p.x-q.x,dy=p.y-q.y,d2=dx*dx+dy*dy;
+        if(d2<LD2){
+          const d=Math.sqrt(d2);
+          const mNear=hot||(mouse.active&&(ambient||brainHot)&&((q.x-mouse.x)**2+(q.y-mouse.y)**2)<MR2);
+          if(mNear){
+            nearPath.moveTo(p.x,p.y);
+            nearPath.lineTo(q.x,q.y);
+            hasNear=true;
+          }else{
+            const ratio=d/LD;
+            if(ratio<0.33){
+              normalPath1.moveTo(p.x,p.y);
+              normalPath1.lineTo(q.x,q.y);
+              hasNormal1=true;
+            }else if(ratio<0.66){
+              normalPath2.moveTo(p.x,p.y);
+              normalPath2.lineTo(q.x,q.y);
+              hasNormal2=true;
+            }else{
+              normalPath3.moveTo(p.x,p.y);
+              normalPath3.lineTo(q.x,q.y);
+              hasNormal3=true;
+            }
+          }
+        }
+      }
+    }
+
+    if(hasNormal1){
+      x.strokeStyle=`rgba(${baseRGB},${baseLineA*0.8})`;
+      x.lineWidth=0.6;
+      x.stroke(normalPath1);
+    }
+    if(hasNormal2){
+      x.strokeStyle=`rgba(${baseRGB},${baseLineA*0.5})`;
+      x.lineWidth=0.5;
+      x.stroke(normalPath2);
+    }
+    if(hasNormal3){
+      x.strokeStyle=`rgba(${baseRGB},${baseLineA*0.2})`;
+      x.lineWidth=0.4;
+      x.stroke(normalPath3);
+    }
+    if(hasNear){
+      x.strokeStyle=`rgba(${nearRGB},0.35)`;
+      x.lineWidth=1.0;
+      x.stroke(nearPath);
+    }
+    x.globalAlpha=1;
+    requestAnimationFrame(draw);
+  }
+  size();requestAnimationFrame(draw);
+  let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(size,180);});
+})();
+
+/* =================================================================
+   SCROLL REVEAL
+   ================================================================= */
+(function(){
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+})();
+
+/* =================================================================
+   NAV scroll state + mobile menu
+   ================================================================= */
+(function(){
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>40));
+  const burger=document.getElementById('burger'),links=document.getElementById('navLinks');
+  burger.addEventListener('click',()=>{burger.classList.toggle('open');links.classList.toggle('open');});
+  links.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+    burger.classList.remove('open');links.classList.remove('open');}));
+})();
+
+/* =================================================================
+   3D TILT + SPOTLIGHT on cards
+   ================================================================= */
+(function(){
+  document.querySelectorAll('[data-tilt]').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+      card.style.setProperty('--mx',(px*100)+'%');
+      card.style.setProperty('--my',(py*100)+'%');
+      const rotX=(0.5-py)*8, rotY=(px-0.5)*8;
+      card.style.transform=`perspective(900px) rotateX(${rotX}deg) rotateY(${rotY}deg) translateY(-6px)`;
+    });
+    card.addEventListener('mouseleave',()=>card.style.transform='');
+  });
+})();
+
+/* =================================================================
+   WORK FILTERS
+   ================================================================= */
+(function(){
+  const btns=document.querySelectorAll('.filter');
+  const cards=document.querySelectorAll('.work-card');
+  btns.forEach(b=>b.addEventListener('click',()=>{
+    btns.forEach(x=>x.classList.remove('active'));b.classList.add('active');
+    const f=b.dataset.filter;
+    cards.forEach(c=>{
+      const show=(f==='all'||c.dataset.cat===f);
+      c.classList.toggle('hide',!show);
+    });
+  }));
+})();
+
+/* =================================================================
+   HERO MARQUEE — duplicate for seamless loop
+   ================================================================= */
+(function(){
+  const t=document.getElementById('marqueeTrack');
+  t.innerHTML+=t.innerHTML;
+})();
+
+/* =================================================================
+   CONTACT FORM -> mailto
+   ================================================================= */
+(function(){
+  const btn=document.getElementById('sendBtn');
+  const note=document.getElementById('formNote');
+  
+  // Set your deployed Render backend URL below (auto-detects local vs production)
+  const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : 'https://anvay-portfolio-backend.onrender.com';
+
+  btn.addEventListener('click',()=>{
+    const n=document.getElementById('name').value.trim();
+    const em=document.getElementById('email').value.trim();
+    const ty=document.getElementById('type').value;
+    const ms=document.getElementById('msg').value.trim();
+    
+    if(!n||!em||!ms){
+      note.textContent='⚠ Please fill in your name, email and message.';
+      note.style.color='#ff6b6b';
+      return;
+    }
+
+    // Disable button to prevent double submission
+    btn.disabled = true;
+    btn.innerHTML = 'Sending enquiry...';
+    note.textContent = '✓ Dispatching request to mailer...';
+    note.style.color = 'var(--muted)';
+
+    fetch(`${BACKEND_URL}/api/enquiry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: n,
+        email: em,
+        type: ty,
+        msg: ms
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(err => { throw new Error(err.message || 'Server error'); });
+      }
+      return response.json();
+    })
+    .then(data => {
+      note.textContent='✓ Enquiry sent successfully! I will reply within 24 hours.';
+      note.style.color='var(--acid)';
+      
+      // Clear form inputs
+      document.getElementById('name').value = '';
+      document.getElementById('email').value = '';
+      document.getElementById('msg').value = '';
+    })
+    .catch(err => {
+      console.error('Submission error:', err);
+      note.textContent = `⚠ Submission failed: ${err.message || 'Network error'}.`;
+      note.style.color = '#ff6b6b';
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = 'Send enquiry <span class="arr">→</span>';
+    });
+  });
+})();
+
+/* =================================================================
+   THEME TOGGLE (dark default ⇄ light)
+   ================================================================= */
+(function(){
+  const btn=document.getElementById('themeToggle');
+  // Persist when self-hosted; silently no-ops inside sandboxes that block storage.
+  try{ if(localStorage.getItem('theme')==='light') document.body.classList.add('light'); }catch(e){}
+  btn.addEventListener('click',()=>{
+    const isLight=document.body.classList.toggle('light');
+    try{ localStorage.setItem('theme',isLight?'light':'dark'); }catch(e){}
+  });
+})();
+</script>
+</body>
+</html>
