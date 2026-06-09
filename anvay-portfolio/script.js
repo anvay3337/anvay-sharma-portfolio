@@ -187,7 +187,7 @@
     w=innerWidth;h=innerHeight;
     c.width=w*DPR;c.height=h*DPR;c.style.width=w+'px';c.style.height=h+'px';
     x.setTransform(DPR,0,0,DPR,0,0);
-    cx=w*0.5; cy=h*0.46; D=Math.min(w,h)*0.72;
+    cx = w > 992 ? w * 0.66 : w * 0.5; cy = h * 0.46; D = w > 992 ? Math.min(w, h) * 0.64 : Math.min(w, h) * 0.72;
     initStars();
     build();
   }
@@ -241,7 +241,7 @@
     const light=document.body.classList.contains('light');
     const baseRGB=light?'20,20,15':'236,234,227';
     const nearRGB=light?'90,130,0':'204,255,0';
-    const baseNodeA=light?0.30:0.42, baseLineA=light?0.14:0.11;
+    const baseNodeA=light?0.15:0.20, baseLineA=light?0.07:0.05;
 
     const breath=1+Math.sin(t*0.0006)*0.018;
     const sway=Math.sin(t*0.0004)*6;
@@ -283,7 +283,7 @@
       x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
       // Draw structural sulci & spine grooves (delicate)
-      x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt})`;
+      x.strokeStyle = `rgba(${nearRGB}, ${0.05 * brainAmt})`;
       x.lineWidth = 1.0;
       x.beginPath();
       SULCI.forEach(line => {
@@ -295,7 +295,7 @@
       x.stroke();
 
       // internal circuit pathways
-      x.strokeStyle=`rgba(${nearRGB},${0.18*brainAmt})`; x.lineWidth=1;
+      x.strokeStyle=`rgba(${nearRGB},${0.08*brainAmt})`; x.lineWidth=1;
       x.beginPath();
       for(const [a,b] of EDGES){x.moveTo(SX(NODES[a]),SY(NODES[a]));x.lineTo(SX(NODES[b]),SY(NODES[b]));}
       x.stroke();
@@ -334,7 +334,7 @@
           }
           if (isClosed) x.closePath();
           const shimmer = 0.45 + 0.55 * Math.sin(t * 0.0022 + k * 1.4);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.14 * brainAmt * alphaFactor * shimmer})`;
+          x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * alphaFactor * shimmer})`;
           x.lineWidth = 0.75;
           x.stroke();
         }
@@ -370,7 +370,7 @@
         }
         x.closePath();
         const shimmer = 0.4 + 0.6 * Math.sin(t * 0.0014 + rIdx * 1.6);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.16 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * shimmer})`;
         x.lineWidth = 0.8;
         x.stroke();
       }
@@ -388,7 +388,7 @@
           else x.lineTo(screenX, screenY);
         }
         const shimmer = 0.5 + 0.5 * Math.sin(t * 0.0018 + fIdx * 1.2);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.20 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.08 * brainAmt * shimmer})`;
         x.lineWidth = 0.8;
         x.stroke();
       }
@@ -410,7 +410,7 @@
           else x.lineTo(screenX, screenY);
         }
         const shimmer = 0.35 + 0.65 * Math.sin(t * 0.002 + sIdx * 0.65);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.14 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * shimmer})`;
         x.lineWidth = 0.75;
         x.stroke();
       }
@@ -443,7 +443,7 @@
             else x.lineTo(screenX, screenY);
           }
           const shimmer = 0.3 + 0.7 * Math.sin(t * 0.0024 + fIdx * 1.1 + k * 0.85);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt * shimmer})`;
+          x.strokeStyle = `rgba(${nearRGB}, ${0.05 * brainAmt * shimmer})`;
           x.lineWidth = 0.7;
           x.stroke();
         }
@@ -461,8 +461,8 @@
 
       // Technical labels/callouts with leader lines
       x.font = "bold 9px 'JetBrains Mono', monospace";
-      x.fillStyle = `rgba(${nearRGB}, ${0.5 * brainAmt})`;
-      x.strokeStyle = `rgba(${nearRGB}, ${0.25 * brainAmt})`;
+      x.fillStyle = `rgba(${nearRGB}, ${0.18 * brainAmt})`;
+      x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt})`;
       x.lineWidth = 0.8;
       CALLOUTS.forEach(co => {
         const px = SX(co.pt);
@@ -480,11 +480,11 @@
         // Draw tiny circle at start
         x.beginPath();
         x.arc(px, py, 1.5, 0, 2 * Math.PI);
-        x.fillStyle = `rgba(${nearRGB}, ${0.8 * brainAmt})`;
+        x.fillStyle = `rgba(${nearRGB}, ${0.35 * brainAmt})`;
         x.fill();
         
         // Draw text label
-        x.fillStyle = `rgba(${baseRGB}, ${0.65 * brainAmt})`;
+        x.fillStyle = `rgba(${baseRGB}, ${0.25 * brainAmt})`;
         x.textAlign = co.align;
         x.textBaseline = "middle";
         x.fillText(co.text, tx + (co.align === "left" ? 4 : -4), ty);
