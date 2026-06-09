@@ -332,7 +332,7 @@
       x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
       // Draw structural sulci & spine grooves (delicate)
-      x.strokeStyle = `rgba(${nearRGB}, ${0.05 * brainAmt})`;
+      x.strokeStyle = `rgba(${nearRGB}, ${0.09 * brainAmt})`;
       x.lineWidth = 1.0;
       x.beginPath();
       SULCI.forEach(line => {
@@ -349,7 +349,7 @@
       x.stroke();
 
       // internal circuit pathways
-      x.strokeStyle=`rgba(${nearRGB},${0.08*brainAmt})`; x.lineWidth=1;
+      x.strokeStyle=`rgba(${nearRGB},${0.12*brainAmt})`; x.lineWidth=1;
       x.beginPath();
       for(const [a,b] of EDGES){
         const pA = NODES[a], pB = NODES[b];
@@ -408,7 +408,7 @@
           }
           if (isClosed) x.closePath();
           const shimmer = 0.45 + 0.55 * Math.sin(t * 0.0022 + k * 1.4);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * alphaFactor * shimmer})`;
+          x.strokeStyle = `rgba(${nearRGB}, ${0.16 * brainAmt * alphaFactor * shimmer})`;
           x.lineWidth = 0.75;
           x.stroke();
         }
@@ -446,7 +446,7 @@
         }
         x.closePath();
         const shimmer = 0.4 + 0.6 * Math.sin(t * 0.0014 + rIdx * 1.6);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt * shimmer})`;
         x.lineWidth = 0.8;
         x.stroke();
       }
@@ -466,7 +466,7 @@
           else x.lineTo(sx, sy);
         }
         const shimmer = 0.5 + 0.5 * Math.sin(t * 0.0018 + fIdx * 1.2);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.08 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt * shimmer})`;
         x.lineWidth = 0.8;
         x.stroke();
       }
@@ -488,7 +488,7 @@
           else x.lineTo(sx, sy);
         }
         const shimmer = 0.35 + 0.65 * Math.sin(t * 0.002 + sIdx * 0.65);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.06 * brainAmt * shimmer})`;
+        x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt * shimmer})`;
         x.lineWidth = 0.75;
         x.stroke();
       }
@@ -521,7 +521,7 @@
             else x.lineTo(sx, sy);
           }
           const shimmer = 0.3 + 0.7 * Math.sin(t * 0.0024 + fIdx * 1.1 + k * 0.85);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.05 * brainAmt * shimmer})`;
+          x.strokeStyle = `rgba(${nearRGB}, ${0.09 * brainAmt * shimmer})`;
           x.lineWidth = 0.7;
           x.stroke();
         }
