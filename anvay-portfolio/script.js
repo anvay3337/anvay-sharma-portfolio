@@ -69,6 +69,12 @@
   let brain3dLoaded = false;
   brain3dImg.onload = () => { brain3dLoaded = true; };
 
+  // Load 'updated brain.png' as a flat background behind the 3D model
+  const updatedBrainImg = new Image();
+  updatedBrainImg.src = '../updated brain.png';
+  let updatedBrainLoaded = false;
+  updatedBrainImg.onload = () => { updatedBrainLoaded = true; };
+
   // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
   const HEAD_OUTLINE = [
     [0.10, 0.95], // Shoulder/back start
@@ -355,6 +361,20 @@
       rotationY += (targetRotationY - rotationY) * 0.08;
 
       x.save();
+
+      // ── Draw 'updated brain.png' as a faded flat background ──
+      if (updatedBrainLoaded) {
+        x.save();
+        x.globalAlpha = 0.28 * brainAmt;
+        const bgSize = D * breath * 0.88;
+        x.drawImage(
+          updatedBrainImg,
+          cx - bgSize / 2 + sway,
+          cy - bgSize / 2,
+          bgSize, bgSize
+        );
+        x.restore();
+      }
 
       // ── Draw transparent 3D brain model with cylindrical warp projection ──
       if (brain3dLoaded) {
