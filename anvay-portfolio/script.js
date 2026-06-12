@@ -63,11 +63,6 @@
   let formed=coarse;                          // touch devices form on load (no hover)
   const mouse={x:-9999,y:-9999,active:false};
 
-  // Load the transparent 3D brain model image (background already keyed out)
-  const brain3dImg = new Image();
-  brain3dImg.src = '../brain3d.png';
-  let brain3dLoaded = false;
-  brain3dImg.onload = () => { brain3dLoaded = true; };
 
   // Load 'updated brain.png' as a flat background behind the 3D model
   const updatedBrainImg = new Image();
@@ -365,70 +360,14 @@
       // ── Draw 'updated brain.png' as a faded flat background ──
       if (updatedBrainLoaded) {
         x.save();
-        x.globalAlpha = 0.28 * brainAmt;
-        const bgSize = D * breath * 0.88;
+        x.globalAlpha = 0.45 * brainAmt;
+        const bgSize = D * breath * 0.95;
         x.drawImage(
           updatedBrainImg,
           cx - bgSize / 2 + sway,
           cy - bgSize / 2,
           bgSize, bgSize
         );
-        x.restore();
-      }
-
-      // ── Draw transparent 3D brain model with cylindrical warp projection ──
-      if (brain3dLoaded) {
-        const iW = brain3dImg.width;
-        const iH = brain3dImg.height;
-        const N = 60;
-        const modelScale = D * breath * 0.72;
-        const modelH = modelScale * (iH / iW);
-        const cylDepth = 0.18;
-
-        x.save();
-        x.globalAlpha = 0.72 * brainAmt;
-
-        for (let i = 0; i < N; i++) {
-          const uL = i / N;
-          const uR = (i + 1) / N;
-
-          const zL = -cylDepth * Math.sin(uL * Math.PI);
-          const zR = -cylDepth * Math.sin(uR * Math.PI);
-
-          const objXL = uL - 0.5;
-          const objXR = uR - 0.5;
-
-          const cosY = Math.cos(rotationY);
-          const sinY = Math.sin(rotationY);
-
-          const scrXL_raw = objXL * cosY - zL * sinY;
-          const zL_rot   = objXL * sinY + zL * cosY;
-          const scrXR_raw = objXR * cosY - zR * sinY;
-          const zR_rot   = objXR * sinY + zR * cosY;
-
-          const pL = 1.8 / (1.8 + zL_rot);
-          const pR = 1.8 / (1.8 + zR_rot);
-
-          const dxL = cx + scrXL_raw * modelScale * pL + sway;
-          const dxR = cx + scrXR_raw * modelScale * pR + sway;
-          const dWidth = dxR - dxL;
-
-          if (dWidth <= 0) continue;
-
-          const topShift = rotationX * modelScale * 0.22;
-          const dTop = cy - modelH / 2 + topShift;
-
-          const srcX = Math.round(uL * iW);
-          const srcW = Math.max(1, Math.round(uR * iW) - srcX);
-
-          try {
-            x.drawImage(
-              brain3dImg,
-              srcX, 0, srcW, iH,
-              dxL, dTop, dWidth, modelH
-            );
-          } catch(e) {}
-        }
         x.restore();
       }
 
