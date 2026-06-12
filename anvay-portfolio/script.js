@@ -63,54 +63,11 @@
   let formed=coarse;                          // touch devices form on load (no hover)
   const mouse={x:-9999,y:-9999,active:false};
 
-  // Load and cache the brain image
-  const brainImg = new Image();
-  brainImg.src = 'updated brain.png';
-  let brainImgLoaded = false;
-  let darkTintedCanvas = null;
-  let lightTintedCanvas = null;
-
-  brainImg.onload = () => {
-    brainImgLoaded = true;
-    cacheTintedImages();
-  };
-
-  function cacheTintedImages() {
-    if (!brainImgLoaded) return;
-    darkTintedCanvas = tintImage(brainImg, 204, 255, 0); // #CCFF00
-    lightTintedCanvas = tintImage(brainImg, 90, 130, 0); // #5a8200
-  }
-
-  function tintImage(img, r, g, b) {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(img, 0, 0);
-    try {
-      const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const data = imgData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const red = data[i];
-        const green = data[i + 1];
-        const blue = data[i + 2];
-        const brightness = (red + green + blue) / 3;
-        if (brightness > 240) {
-          data[i + 3] = 0;
-        } else {
-          const alpha = Math.max(0, 255 - brightness);
-          data[i] = r;
-          data[i + 1] = g;
-          data[i + 2] = b;
-          data[i + 3] = alpha;
-        }
-      }
-      tempCtx.putImageData(imgData, 0, 0);
-    } catch (e) {
-      console.error("Canvas image tinting failed:", e);
-    }
-    return tempCanvas;
-  }
+  // Load the transparent 3D brain model image (background already keyed out)
+  const brain3dImg = new Image();
+  brain3dImg.src = '../brain3d.png';
+  let brain3dLoaded = false;
+  brain3dImg.onload = () => { brain3dLoaded = true; };
 
   // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
   const HEAD_OUTLINE = [
@@ -201,6 +158,26 @@
     const y2 = y * cosX - z1 * sinX;
     const z2 = y * sinX + z1 * cosX;
     return [x1, y2, z2];
+  }
+
+  function getBounds(outline, yVal) {
+    let xBack = null;
+    let xFront = null;
+    const n = outline.length;
+    for (let i = 0; i < n; i++) {
+      const p1 = outline[i];
+      const p2 = outline[(i + 1) % n];
+      if ((p1[1] <= yVal && yVal < p2[1]) || (p2[1] <= yVal && yVal < p1[1])) {
+        const t = (yVal - p1[1]) / (p2[1] - p1[1]);
+        const xIntersection = p1[0] + t * (p2[0] - p1[0]);
+        if (xIntersection < 0.45) {
+          if (xBack === null || xIntersection < xBack) xBack = xIntersection;
+        } else {
+          if (xFront === null || xIntersection > xFront) xFront = xIntersection;
+        }
+      }
+    }
+    return { back: xBack, front: xFront };
   }
 
   // Stars background (unaffected space particles)
@@ -378,30 +355,64 @@
       rotationY += (targetRotationY - rotationY) * 0.08;
 
       x.save();
-      x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
-      // Draw the updated brain background image
-      const activeCanvas = light ? lightTintedCanvas : darkTintedCanvas;
-      if (activeCanvas) {
+      // ── Draw transparent 3D brain model with cylindrical warp projection ──
+      if (brain3dLoaded) {
+        const iW = brain3dImg.width;
+        const iH = brain3dImg.height;
+        const N = 60;
+        const modelScale = D * breath * 0.72;
+        const modelH = modelScale * (iH / iW);
+        const cylDepth = 0.18;
+
         x.save();
-        // Control image line opacity (highlighted slightly more)
-        x.globalAlpha = curVis * brainAmt * 0.32;
-        
-        const imgW = D * breath;
-        const imgH = D * breath;
-        
-        // 3D parallax shift based on mouse dragging rotation
-        const offsetX = rotationY * D * 0.08;
-        const offsetY = -rotationX * D * 0.08;
-        
-        const imgX = cx - 0.45 * imgW + sway + offsetX;
-        const imgY = cy - 0.35 * imgH + offsetY; // Center the brain vertically by shifting the head downwards
-        
-        x.drawImage(activeCanvas, imgX, imgY, imgW, imgH);
+        x.globalAlpha = 0.72 * brainAmt;
+
+        for (let i = 0; i < N; i++) {
+          const uL = i / N;
+          const uR = (i + 1) / N;
+
+          const zL = -cylDepth * Math.sin(uL * Math.PI);
+          const zR = -cylDepth * Math.sin(uR * Math.PI);
+
+          const objXL = uL - 0.5;
+          const objXR = uR - 0.5;
+
+          const cosY = Math.cos(rotationY);
+          const sinY = Math.sin(rotationY);
+
+          const scrXL_raw = objXL * cosY - zL * sinY;
+          const zL_rot   = objXL * sinY + zL * cosY;
+          const scrXR_raw = objXR * cosY - zR * sinY;
+          const zR_rot   = objXR * sinY + zR * cosY;
+
+          const pL = 1.8 / (1.8 + zL_rot);
+          const pR = 1.8 / (1.8 + zR_rot);
+
+          const dxL = cx + scrXL_raw * modelScale * pL + sway;
+          const dxR = cx + scrXR_raw * modelScale * pR + sway;
+          const dWidth = dxR - dxL;
+
+          if (dWidth <= 0) continue;
+
+          const topShift = rotationX * modelScale * 0.22;
+          const dTop = cy - modelH / 2 + topShift;
+
+          const srcX = Math.round(uL * iW);
+          const srcW = Math.max(1, Math.round(uR * iW) - srcX);
+
+          try {
+            x.drawImage(
+              brain3dImg,
+              srcX, 0, srcW, iH,
+              dxL, dTop, dWidth, modelH
+            );
+          } catch(e) {}
+        }
         x.restore();
       }
 
-      // internal circuit pathways
+      // internal circuit pathways (overlay on top of image)
       x.strokeStyle=`rgba(${nearRGB},${0.12*brainAmt})`; x.lineWidth=1;
       x.beginPath();
       for(const [a,b] of EDGES){
@@ -414,8 +425,6 @@
         x.lineTo(cx + rxB * D * breath * perspB + sway, cy + ryB * D * breath * perspB);
       }
       x.stroke();
-
-      // Outlines are now drawn via updated brain.png background image above
 
       // tech nodes (square synapses) at the circuit junctions in 3D
       const pulse=0.7+0.3*Math.sin(t*0.004);

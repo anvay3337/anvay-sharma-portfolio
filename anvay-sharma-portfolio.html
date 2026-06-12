@@ -927,54 +927,11 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
   let formed=coarse;                          // touch devices form on load (no hover)
   const mouse={x:-9999,y:-9999,active:false};
 
-  // Load and cache the brain image
-  const brainImg = new Image();
-  brainImg.src = 'updated brain.png';
-  let brainImgLoaded = false;
-  let darkTintedCanvas = null;
-  let lightTintedCanvas = null;
-
-  brainImg.onload = () => {
-    brainImgLoaded = true;
-    cacheTintedImages();
-  };
-
-  function cacheTintedImages() {
-    if (!brainImgLoaded) return;
-    darkTintedCanvas = tintImage(brainImg, 204, 255, 0); // #CCFF00
-    lightTintedCanvas = tintImage(brainImg, 90, 130, 0); // #5a8200
-  }
-
-  function tintImage(img, r, g, b) {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = img.width;
-    tempCanvas.height = img.height;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(img, 0, 0);
-    try {
-      const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-      const data = imgData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const red = data[i];
-        const green = data[i + 1];
-        const blue = data[i + 2];
-        const brightness = (red + green + blue) / 3;
-        if (brightness > 240) {
-          data[i + 3] = 0;
-        } else {
-          const alpha = Math.max(0, 255 - brightness);
-          data[i] = r;
-          data[i + 1] = g;
-          data[i + 2] = b;
-          data[i + 3] = alpha;
-        }
-      }
-      tempCtx.putImageData(imgData, 0, 0);
-    } catch (e) {
-      console.error("Canvas image tinting failed:", e);
-    }
-    return tempCanvas;
-  }
+  // Load the transparent 3D brain model image (background already keyed out)
+  const brain3dImg = new Image();
+  brain3dImg.src = 'brain3d.png';
+  let brain3dLoaded = false;
+  brain3dImg.onload = () => { brain3dLoaded = true; };
 
   // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
   const HEAD_OUTLINE = [
@@ -1065,6 +1022,26 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
     const y2 = y * cosX - z1 * sinX;
     const z2 = y * sinX + z1 * cosX;
     return [x1, y2, z2];
+  }
+
+  function getBounds(outline, yVal) {
+    let xBack = null;
+    let xFront = null;
+    const n = outline.length;
+    for (let i = 0; i < n; i++) {
+      const p1 = outline[i];
+      const p2 = outline[(i + 1) % n];
+      if ((p1[1] <= yVal && yVal < p2[1]) || (p2[1] <= yVal && yVal < p1[1])) {
+        const t = (yVal - p1[1]) / (p2[1] - p1[1]);
+        const xIntersection = p1[0] + t * (p2[0] - p1[0]);
+        if (xIntersection < 0.45) {
+          if (xBack === null || xIntersection < xBack) xBack = xIntersection;
+        } else {
+          if (xFront === null || xIntersection > xFront) xFront = xIntersection;
+        }
+      }
+    }
+    return { back: xBack, front: xFront };
   }
 
   // Stars background (unaffected space particles)
@@ -1235,37 +1212,90 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
     });
     x.restore();
 
-    // angular, faceted brain — sharp edges + internal circuit wiring + nodes in 3D
+    // 3D brain model: transparent image warped with cylindrical projection, interactive rotation
     brainAmt += ((ambient?0:1)-brainAmt)*0.08;
     if(brainAmt>0.02){
       rotationX += (targetRotationX - rotationX) * 0.08;
       rotationY += (targetRotationY - rotationY) * 0.08;
 
       x.save();
-      x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
-      // Draw the updated brain background image
-      const activeCanvas = light ? lightTintedCanvas : darkTintedCanvas;
-      if (activeCanvas) {
+      // ── Draw transparent 3D brain model with cylindrical warp projection ──
+      // The image (brain3d.png) has transparency; we project it column-by-column
+      // onto a cylindrical surface that responds to rotationY for 3D depth effect.
+      if (brain3dLoaded) {
+        const iW = brain3dImg.width;   // source image width
+        const iH = brain3dImg.height;  // source image height
+        const N = 60;                  // number of vertical slices
+
+        // Model size on screen — sized relative to canvas D
+        const modelScale = D * breath * 0.72;
+        // Center the head model: image is 500x661, aspect ~0.756. We want head centered.
+        // The head occupies roughly the full image, centered around u=0.5 (horizontal center)
+        const modelH = modelScale * (iH / iW);  // keep aspect ratio
+
+        // Cylinder depth factor — how much the image curves in 3D
+        // rotationY shifts the "view angle" around the cylinder
+        const cylDepth = 0.18;  // fraction of width that curves into Z
+
         x.save();
-        // Control image line opacity (highlighted slightly more)
-        x.globalAlpha = curVis * brainAmt * 0.32;
-        
-        const imgW = D * breath;
-        const imgH = D * breath;
-        
-        // 3D parallax shift based on mouse dragging rotation
-        const offsetX = rotationY * D * 0.08;
-        const offsetY = -rotationX * D * 0.08;
-        
-        const imgX = cx - 0.45 * imgW + sway + offsetX;
-        const imgY = cy - 0.35 * imgH + offsetY; // Center the brain vertically by shifting the head downwards
-        
-        x.drawImage(activeCanvas, imgX, imgY, imgW, imgH);
+        x.globalAlpha = 0.72 * brainAmt;  // slightly transparent so neural nodes show through
+
+        for (let i = 0; i < N; i++) {
+          const uL = i / N;
+          const uR = (i + 1) / N;
+          const uM = (uL + uR) / 2;
+
+          // Cylindrical Z: center of image is closest, edges curve back
+          const zL = -cylDepth * Math.sin(uL * Math.PI);
+          const zR = -cylDepth * Math.sin(uR * Math.PI);
+
+          // Map u from [0,1] image space to [-0.5, +0.5] model space centered at cx
+          // Then rotate around Y axis by rotationY
+          const objXL = uL - 0.5;
+          const objXR = uR - 0.5;
+
+          // Rotate left/right column edges around Y
+          const cosY = Math.cos(rotationY);
+          const sinY = Math.sin(rotationY);
+
+          const scrXL_raw = objXL * cosY - zL * sinY;
+          const zL_rot   = objXL * sinY + zL * cosY;
+          const scrXR_raw = objXR * cosY - zR * sinY;
+          const zR_rot   = objXR * sinY + zR * cosY;
+
+          // Perspective divide
+          const pL = 1.8 / (1.8 + zL_rot);
+          const pR = 1.8 / (1.8 + zR_rot);
+
+          // Map to canvas pixels — centered, scaled by modelScale
+          const dxL = cx + scrXL_raw * modelScale * pL + sway;
+          const dxR = cx + scrXR_raw * modelScale * pR + sway;
+          const dWidth = dxR - dxL;
+
+          if (dWidth <= 0) continue;  // column folded behind (back of cylinder)
+
+          // Vertical: apply mild rotationX tilt
+          // Top of image is at 0, bottom at iH. We offset by rotationX.
+          const topShift = rotationX * modelScale * 0.22;
+          const dTop = cy - modelH / 2 + topShift;
+
+          // Source column slice from brain3d.png
+          const srcX = Math.round(uL * iW);
+          const srcW = Math.max(1, Math.round(uR * iW) - srcX);
+
+          try {
+            x.drawImage(
+              brain3dImg,
+              srcX, 0, srcW, iH,          // source: column slice
+              dxL, dTop, dWidth, modelH   // dest: projected column on screen
+            );
+          } catch(e) {}
+        }
         x.restore();
       }
 
-      // internal circuit pathways
+      // internal circuit pathways (overlay on top of image)
       x.strokeStyle=`rgba(${nearRGB},${0.12*brainAmt})`; x.lineWidth=1;
       x.beginPath();
       for(const [a,b] of EDGES){
@@ -1278,10 +1308,6 @@ footer{border-top:1px solid var(--line-soft);padding:48px 0 40px;}
         x.lineTo(cx + rxB * D * breath * perspB + sway, cy + ryB * D * breath * perspB);
       }
       x.stroke();
-
-      // Redundant convolutions and folia folds are represented in the background image
-
-      // Spinal and facial fibers are also represented in updated brain.png background image above
 
       // tech nodes (square synapses) at the circuit junctions in 3D
       const pulse=0.7+0.3*Math.sin(t*0.004);
