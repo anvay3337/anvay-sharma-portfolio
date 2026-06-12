@@ -384,8 +384,8 @@
       const activeCanvas = light ? lightTintedCanvas : darkTintedCanvas;
       if (activeCanvas) {
         x.save();
-        // Control image line opacity (subtle, matching neon aesthetics)
-        x.globalAlpha = curVis * brainAmt * 0.22;
+        // Control image line opacity (faded to be more subtle)
+        x.globalAlpha = curVis * brainAmt * 0.09;
         
         const imgW = D * breath;
         const imgH = D * breath;
@@ -394,8 +394,8 @@
         const offsetX = rotationY * D * 0.08;
         const offsetY = -rotationX * D * 0.08;
         
-        const imgX = cx + (0 - 0.45) * D * breath + sway + offsetX;
-        const imgY = cy + (0 - 0.5) * D * breath + offsetY;
+        const imgX = cx - 0.45 * imgW + sway + offsetX;
+        const imgY = cy - 0.35 * imgH + offsetY; // Center the brain vertically by shifting the head downwards
         
         x.drawImage(activeCanvas, imgX, imgY, imgW, imgH);
         x.restore();
