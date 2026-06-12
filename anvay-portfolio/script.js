@@ -64,11 +64,16 @@
   const mouse={x:-9999,y:-9999,active:false};
 
 
-  // Load 'updated brain.png' as a flat background behind the 3D model
-  const updatedBrainImg = new Image();
-  updatedBrainImg.src = '../updated brain.png';
-  let updatedBrainLoaded = false;
-  updatedBrainImg.onload = () => { updatedBrainLoaded = true; };
+  // Load transparent, theme-colored brain outline images
+  const brainDarkImg = new Image();
+  brainDarkImg.src = '../updated_brain_dark.png';
+  let brainDarkLoaded = false;
+  brainDarkImg.onload = () => { brainDarkLoaded = true; };
+
+  const brainLightImg = new Image();
+  brainLightImg.src = '../updated_brain_light.png';
+  let brainLightLoaded = false;
+  brainLightImg.onload = () => { brainLightLoaded = true; };
 
   // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
   const HEAD_OUTLINE = [
@@ -357,13 +362,15 @@
 
       x.save();
 
-      // ── Draw 'updated brain.png' as a faded flat background ──
-      if (updatedBrainLoaded) {
+      // ── Draw transparent theme-matched brain background ──
+      const imgToDraw = light ? brainLightImg : brainDarkImg;
+      const imgLoaded = light ? brainLightLoaded : brainDarkLoaded;
+      if (imgLoaded) {
         x.save();
         x.globalAlpha = 0.45 * brainAmt;
         const bgSize = D * breath * 0.95;
         x.drawImage(
-          updatedBrainImg,
+          imgToDraw,
           cx - bgSize / 2 + sway,
           cy - bgSize / 2,
           bgSize, bgSize
