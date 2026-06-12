@@ -63,6 +63,55 @@
   let formed=coarse;                          // touch devices form on load (no hover)
   const mouse={x:-9999,y:-9999,active:false};
 
+  // Load and cache the brain image
+  const brainImg = new Image();
+  brainImg.src = 'updated brain.png';
+  let brainImgLoaded = false;
+  let darkTintedCanvas = null;
+  let lightTintedCanvas = null;
+
+  brainImg.onload = () => {
+    brainImgLoaded = true;
+    cacheTintedImages();
+  };
+
+  function cacheTintedImages() {
+    if (!brainImgLoaded) return;
+    darkTintedCanvas = tintImage(brainImg, 204, 255, 0); // #CCFF00
+    lightTintedCanvas = tintImage(brainImg, 90, 130, 0); // #5a8200
+  }
+
+  function tintImage(img, r, g, b) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = img.width;
+    tempCanvas.height = img.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(img, 0, 0);
+    try {
+      const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const red = data[i];
+        const green = data[i + 1];
+        const blue = data[i + 2];
+        const brightness = (red + green + blue) / 3;
+        if (brightness > 240) {
+          data[i + 3] = 0;
+        } else {
+          const alpha = Math.max(0, 255 - brightness);
+          data[i] = r;
+          data[i + 1] = g;
+          data[i + 2] = b;
+          data[i + 3] = alpha;
+        }
+      }
+      tempCtx.putImageData(imgData, 0, 0);
+    } catch (e) {
+      console.error("Canvas image tinting failed:", e);
+    }
+    return tempCanvas;
+  }
+
   // ---- Highly accurate anatomical lateral (side-view) human head/face/neck outline ----
   const HEAD_OUTLINE = [
     [0.10, 0.95], // Shoulder/back start
@@ -331,22 +380,26 @@
       x.save();
       x.lineJoin='miter'; x.miterLimit=8; x.lineCap='butt';
 
-      // Draw structural sulci & spine grooves (delicate)
-      x.strokeStyle = `rgba(${nearRGB}, ${0.09 * brainAmt})`;
-      x.lineWidth = 1.0;
-      x.beginPath();
-      SULCI.forEach(line => {
-        for (let k = 0; k < line.length; k++) {
-          const pt = line[k];
-          const [rx, ry, rz] = rotate3D(pt[0] - 0.45, pt[1] - 0.5, 0, rotationX, rotationY);
-          const persp = 1.8 / (1.8 + rz);
-          const sx = cx + rx * D * breath * persp + sway;
-          const sy = cy + ry * D * breath * persp;
-          if (k === 0) x.moveTo(sx, sy);
-          else x.lineTo(sx, sy);
-        }
-      });
-      x.stroke();
+      // Draw the updated brain background image
+      const activeCanvas = light ? lightTintedCanvas : darkTintedCanvas;
+      if (activeCanvas) {
+        x.save();
+        // Control image line opacity (subtle, matching neon aesthetics)
+        x.globalAlpha = curVis * brainAmt * 0.22;
+        
+        const imgW = D * breath;
+        const imgH = D * breath;
+        
+        // 3D parallax shift based on mouse dragging rotation
+        const offsetX = rotationY * D * 0.08;
+        const offsetY = -rotationX * D * 0.08;
+        
+        const imgX = cx + (0 - 0.45) * D * breath + sway + offsetX;
+        const imgY = cy + (0 - 0.5) * D * breath + offsetY;
+        
+        x.drawImage(activeCanvas, imgX, imgY, imgW, imgH);
+        x.restore();
+      }
 
       // internal circuit pathways
       x.strokeStyle=`rgba(${nearRGB},${0.12*brainAmt})`; x.lineWidth=1;
@@ -362,170 +415,7 @@
       }
       x.stroke();
 
-      // Helper to draw parallel glowing fiber bundles along a coordinate array (0..1 space) in 3D
-      function drawFibers(points, numFibers, spacing, alphaFactor, isClosed) {
-        const n = points.length;
-        if (n < 2) return;
-        
-        // Project all points of this outline to 3D rotated screen coordinates
-        const projected = [];
-        for (let i = 0; i < n; i++) {
-          const pt = points[i];
-          const [rx, ry, rz] = rotate3D(pt[0] - 0.45, pt[1] - 0.5, 0, rotationX, rotationY);
-          const persp = 1.8 / (1.8 + rz);
-          const sx = cx + rx * D * breath * persp + sway;
-          const sy = cy + ry * D * breath * persp;
-          projected.push({x: sx, y: sy, z: rz});
-        }
-        
-        // Calculate 2D normals on screen for the projected points
-        const normals = [];
-        for (let i = 0; i < n; i++) {
-          let prev = projected[Math.max(0, i - 1)];
-          let next = projected[Math.min(n - 1, i + 1)];
-          if (isClosed) {
-            prev = projected[(i - 1 + n) % n];
-            next = projected[(i + 1) % n];
-          }
-          const dx = next.x - prev.x;
-          const dy = next.y - prev.y;
-          const len = Math.hypot(dx, dy) || 1;
-          normals.push([-dy / len, dx / len]);
-        }
-        
-        for (let k = 0; k < numFibers; k++) {
-          const offsetIdx = k - (numFibers - 1) / 2;
-          const offsetDist = offsetIdx * spacing * D * breath;
-          x.beginPath();
-          for (let i = 0; i < n; i++) {
-            const pt = projected[i];
-            const norm = normals[i];
-            const wave = 0.003 * Math.sin(t * 0.0016 + i * 0.35 + k * 1.2) * D * breath;
-            const ox = pt.x + norm[0] * (offsetDist + wave);
-            const oy = pt.y + norm[1] * (offsetDist + wave);
-            if (i === 0) x.moveTo(ox, oy);
-            else x.lineTo(ox, oy);
-          }
-          if (isClosed) x.closePath();
-          const shimmer = 0.45 + 0.55 * Math.sin(t * 0.0022 + k * 1.4);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.16 * brainAmt * alphaFactor * shimmer})`;
-          x.lineWidth = 0.75;
-          x.stroke();
-        }
-      }
-
-      // 1. Draw organic head profile fiber bundles (shimmering outer contours, open at shoulders)
-      drawFibers(HEAD_OUTLINE, 6, 0.007, 1.2, false);
-
-      // 2. Draw organic brain boundary fiber bundles
-      drawFibers(BRAIN_OUTLINE, 4, 0.005, 0.7, true);
-
-      // 3. Draw cerebral cortex convolutions (concentric perturbed loops inside brainPath) in 3D
-      const brainCenter = [0.44, 0.35];
-      const maxR = 0.22, numLobes = 6;
-      for (let rIdx = 0; rIdx < numLobes; rIdx++) {
-        const r = 0.04 + (rIdx / (numLobes - 1)) * (maxR - 0.04);
-        x.beginPath();
-        const numAngleSteps = 120;
-        for (let a = 0; a <= numAngleSteps; a++) {
-          const angle = (a / numAngleSteps) * Math.PI * 2;
-          const freq = 12 + rIdx * 2;
-          const amp = 0.012 + rIdx * 0.003;
-          const foldWave = amp * Math.sin(freq * angle + t * 0.0012 + rIdx * 0.75);
-          const currR = r + foldWave;
-          const ox = brainCenter[0] + currR * Math.cos(angle);
-          const oy = brainCenter[1] + currR * Math.sin(angle);
-          const oz = (Math.random() - 0.5) * 0.02;
-          
-          const [rx, ry, rz] = rotate3D(ox - 0.45, oy - 0.5, oz, rotationX, rotationY);
-          const persp = 1.8 / (1.8 + rz);
-          const sx = cx + rx * D * breath * persp + sway;
-          const sy = cy + ry * D * breath * persp;
-          if (a === 0) x.moveTo(sx, sy);
-          else x.lineTo(sx, sy);
-        }
-        x.closePath();
-        const shimmer = 0.4 + 0.6 * Math.sin(t * 0.0014 + rIdx * 1.6);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt * shimmer})`;
-        x.lineWidth = 0.8;
-        x.stroke();
-      }
-
-      // 4. Draw cerebellum horizontal folia folds (tight horizontal wavy lines in lower back of brain)
-      const numFolia = 8;
-      for (let fIdx = 0; fIdx < numFolia; fIdx++) {
-        const yBase = 0.50 + (fIdx / (numFolia - 1)) * 0.12;
-        x.beginPath();
-        for (let gx = 0.40; gx <= 0.60; gx += 0.005) {
-          const waveY = 0.004 * Math.sin(gx * 140 + t * 0.0022 + fIdx * 0.95);
-          const [rx, ry, rz] = rotate3D(gx - 0.45, yBase + waveY - 0.5, 0, rotationX, rotationY);
-          const persp = 1.8 / (1.8 + rz);
-          const sx = cx + rx * D * breath * persp + sway;
-          const sy = cy + ry * D * breath * persp;
-          if (gx === 0.40) x.moveTo(sx, sy);
-          else x.lineTo(sx, sy);
-        }
-        const shimmer = 0.5 + 0.5 * Math.sin(t * 0.0018 + fIdx * 1.2);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.12 * brainAmt * shimmer})`;
-        x.lineWidth = 0.8;
-        x.stroke();
-      }
-
-      // 5. Draw spinal / neck vertical nerve fibers
-      const numSpineFibers = 12;
-      for (let sIdx = 0; sIdx < numSpineFibers; sIdx++) {
-        const xBase = 0.22 + (sIdx / (numSpineFibers - 1)) * 0.18;
-        x.beginPath();
-        for (let gy = 0.40; gy <= 0.96; gy += 0.01) {
-          const spineBend = 0.04 * Math.sin(gy * 3.5 - 1.2);
-          const wiggle = 0.0035 * Math.sin(gy * 24 + t * 0.0016 + sIdx * 0.8);
-          
-          const [rx, ry, rz] = rotate3D(xBase + spineBend + wiggle - 0.45, gy - 0.5, 0, rotationX, rotationY);
-          const persp = 1.8 / (1.8 + rz);
-          const sx = cx + rx * D * breath * persp + sway;
-          const sy = cy + ry * D * breath * persp;
-          if (gy === 0.40) x.moveTo(sx, sy);
-          else x.lineTo(sx, sy);
-        }
-        const shimmer = 0.35 + 0.65 * Math.sin(t * 0.002 + sIdx * 0.65);
-        x.strokeStyle = `rgba(${nearRGB}, ${0.10 * brainAmt * shimmer})`;
-        x.lineWidth = 0.75;
-        x.stroke();
-      }
-
-      // 6. Draw facial peripheral nerve branches sweeping forward into facial profile
-      const faceFibers = [
-        [[0.42, 0.45], [0.55, 0.35], [0.68, 0.28]], // Forehead
-        [[0.42, 0.45], [0.58, 0.42], [0.70, 0.42]], // Eye
-        [[0.42, 0.45], [0.56, 0.50], [0.72, 0.46]], // Nose
-        [[0.42, 0.45], [0.50, 0.58], [0.65, 0.62]], // Jaw
-        [[0.42, 0.45], [0.44, 0.60], [0.46, 0.80]]  // Throat
-      ];
-      faceFibers.forEach((ptsList, fIdx) => {
-        for (let k = 0; k < 3; k++) {
-          const offset = (k - 1) * 0.007;
-          x.beginPath();
-          const p0 = ptsList[0], p1 = ptsList[1], p2 = ptsList[2];
-          for (let step = 0; step <= 20; step++) {
-            const u = step / 20;
-            const bx = (1 - u) * (1 - u) * p0[0] + 2 * (1 - u) * u * p1[0] + u * u * p2[0];
-            const by = (1 - u) * (1 - u) * p0[1] + 2 * (1 - u) * u * p1[1] + u * u * p2[1];
-            const wiggleX = 0.004 * Math.sin(u * 12 + t * 0.0012 + k * 1.5);
-            const wiggleY = 0.004 * Math.cos(u * 12 + t * 0.0012 + k * 1.5);
-            
-            const [rx, ry, rz] = rotate3D(bx + offset + wiggleX - 0.45, by + offset + wiggleY - 0.5, 0, rotationX, rotationY);
-            const persp = 1.8 / (1.8 + rz);
-            const sx = cx + rx * D * breath * persp + sway;
-            const sy = cy + ry * D * breath * persp;
-            if (step === 0) x.moveTo(sx, sy);
-            else x.lineTo(sx, sy);
-          }
-          const shimmer = 0.3 + 0.7 * Math.sin(t * 0.0024 + fIdx * 1.1 + k * 0.85);
-          x.strokeStyle = `rgba(${nearRGB}, ${0.09 * brainAmt * shimmer})`;
-          x.lineWidth = 0.7;
-          x.stroke();
-        }
-      });
+      // Outlines are now drawn via updated brain.png background image above
 
       // tech nodes (square synapses) at the circuit junctions in 3D
       const pulse=0.7+0.3*Math.sin(t*0.004);
