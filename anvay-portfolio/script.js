@@ -384,8 +384,8 @@
       const activeCanvas = light ? lightTintedCanvas : darkTintedCanvas;
       if (activeCanvas) {
         x.save();
-        // Control image line opacity (faded to be more subtle)
-        x.globalAlpha = curVis * brainAmt * 0.09;
+        // Control image line opacity (highlighted slightly more)
+        x.globalAlpha = curVis * brainAmt * 0.14;
         
         const imgW = D * breath;
         const imgH = D * breath;
@@ -406,9 +406,9 @@
       x.beginPath();
       for(const [a,b] of EDGES){
         const pA = NODES[a], pB = NODES[b];
-        const [rxA, ryA, rzA] = rotate3D(pA[0] - 0.45, pA[1] - 0.5, 0, rotationX, rotationY);
+        const [rxA, ryA, rzA] = rotate3D(pA[0] - 0.45, pA[1] - 0.35, 0, rotationX, rotationY);
         const perspA = 1.8 / (1.8 + rzA);
-        const [rxB, ryB, rzB] = rotate3D(pB[0] - 0.45, pB[1] - 0.5, 0, rotationX, rotationY);
+        const [rxB, ryB, rzB] = rotate3D(pB[0] - 0.45, pB[1] - 0.35, 0, rotationX, rotationY);
         const perspB = 1.8 / (1.8 + rzB);
         x.moveTo(cx + rxA * D * breath * perspA + sway, cy + ryA * D * breath * perspA);
         x.lineTo(cx + rxB * D * breath * perspB + sway, cy + ryB * D * breath * perspB);
@@ -421,7 +421,7 @@
       const pulse=0.7+0.3*Math.sin(t*0.004);
       x.fillStyle=`rgba(${nearRGB},${0.18*brainAmt})`;
       for(const n of NODES){
-        const [rx, ry, rz] = rotate3D(n[0] - 0.45, n[1] - 0.5, 0, rotationX, rotationY);
+        const [rx, ry, rz] = rotate3D(n[0] - 0.45, n[1] - 0.35, 0, rotationX, rotationY);
         const persp = 1.8 / (1.8 + rz);
         const px = cx + rx * D * breath * persp + sway;
         const py = cy + ry * D * breath * persp;
@@ -431,7 +431,7 @@
       // glowing core node in 3D
       x.fillStyle=`rgba(${nearRGB},${pulse*0.35*brainAmt})`;
       const core=NODES[1];
-      const [crx, cry, crz] = rotate3D(core[0] - 0.45, core[1] - 0.5, 0, rotationX, rotationY);
+      const [crx, cry, crz] = rotate3D(core[0] - 0.45, core[1] - 0.35, 0, rotationX, rotationY);
       const cPersp = 1.8 / (1.8 + crz);
       x.fillRect(cx + crx * D * breath * cPersp + sway - 3.5, cy + cry * D * breath * cPersp - 3.5, 7, 7);
 
@@ -439,7 +439,7 @@
       x.font = "bold 9px 'JetBrains Mono', monospace";
       x.lineWidth = 0.8;
       CALLOUTS.forEach(co => {
-        const [rx, ry, rz] = rotate3D(co.pt[0] - 0.45, co.pt[1] - 0.5, 0, rotationX, rotationY);
+        const [rx, ry, rz] = rotate3D(co.pt[0] - 0.45, co.pt[1] - 0.35, 0, rotationX, rotationY);
         const persp = 1.8 / (1.8 + rz);
         const px = cx + rx * D * breath * persp + sway;
         const py = cy + ry * D * breath * persp;
@@ -491,7 +491,7 @@
         if(p.y<0){p.y=0;p.vy*=-1;} else if(p.y>h){p.y=h;p.vy*=-1;}
       }else{
         // ── brain: spring to home, scatter away from cursor ──
-        const [rx2, ry2, rz2] = rotate3D(p.sx - 0.45, p.sy - 0.5, p.sz, rotationX, rotationY);
+        const [rx2, ry2, rz2] = rotate3D(p.sx - 0.45, p.sy - 0.35, p.sz, rotationX, rotationY);
         const persp = 1.8 / (1.8 + rz2);
         const hx = cx + rx2 * D * breath * persp + sway;
         const hy = cy + ry2 * D * breath * persp;
